@@ -28,6 +28,7 @@ plugins {
 android {
     namespace = "org.stypox.dicio"
     compileSdk = libs.versions.compileSdk.get().toInt()
+    ndkVersion = libs.versions.androidNdk.get()
 
     defaultConfig {
         applicationId = "org.stypox.dicio"
@@ -41,6 +42,20 @@ android {
 
         ndk {
             abiFilters += arrayOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+        }
+
+        externalNativeBuild {
+            cmake {
+                // Required for Android 15+ 16 KB page size compatibility.
+                arguments += "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
+            }
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = libs.versions.cmake.get()
         }
     }
 

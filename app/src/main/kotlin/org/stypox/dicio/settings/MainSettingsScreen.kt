@@ -80,6 +80,11 @@ private fun MainSettingsScreen(
             viewModel.addOwwUserWakeFile(it)
         }
     }
+    val mwwImportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) {
+        if (it.isNotEmpty()) {
+            viewModel.addMwwUserModel(it)
+        }
+    }
 
     LazyColumn(modifier) {
         /* GENERAL SETTINGS */
@@ -163,6 +168,26 @@ private fun MainSettingsScreen(
                         title = stringResource(R.string.pref_wake_custom_delete),
                         icon = Icons.Default.DeleteSweep,
                         description = stringResource(R.string.pref_wake_custom_delete_summary),
+                    )
+                }
+            }
+        } else if (wakeDevice == WakeDevice.WAKE_DEVICE_MWW) {
+            /* microWakeWord-specific settings */
+            item {
+                val hasMwwUserModel by viewModel.hasMwwUserModel.collectAsState()
+                if (!hasMwwUserModel) {
+                    SettingsItem(
+                        modifier = Modifier.clickable { mwwImportLauncher.launch(arrayOf("*/*")) },
+                        title = stringResource(R.string.pref_wake_custom_import),
+                        icon = Icons.Default.UploadFile,
+                        description = stringResource(R.string.pref_wake_custom_import_summary_mww),
+                    )
+                } else {
+                    SettingsItem(
+                        modifier = Modifier.clickable { viewModel.removeMwwUserModel() },
+                        title = stringResource(R.string.pref_wake_custom_delete),
+                        icon = Icons.Default.DeleteSweep,
+                        description = stringResource(R.string.pref_wake_custom_delete_summary_mww),
                     )
                 }
             }

@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import org.stypox.dicio.di.WakeDeviceWrapper
+import org.stypox.dicio.io.wake.mww.MicroWakeWordDevice
 import org.stypox.dicio.io.wake.oww.OpenWakeWordDevice
 import org.stypox.dicio.settings.datastore.InputDevice
 import org.stypox.dicio.settings.datastore.Language
@@ -43,6 +44,11 @@ class MainSettingsViewModel @Inject constructor(
 
     val isHeyDicio: StateFlow<Boolean> = wakeDeviceWrapper?.isHeyDicio ?: MutableStateFlow(true)
 
+    private val _hasMwwUserModel = MutableStateFlow(
+        MicroWakeWordDevice.userModelFileExists(application)
+    )
+    val hasMwwUserModel: StateFlow<Boolean> = _hasMwwUserModel
+
     fun addOwwUserWakeFile(uri: Uri) {
         viewModelScope.launch {
             OpenWakeWordDevice.addUserWakeFile(getApplication(), uri)
@@ -53,6 +59,23 @@ class MainSettingsViewModel @Inject constructor(
     fun removeOwwUserWakeFile() {
         viewModelScope.launch {
             OpenWakeWordDevice.removeUserWakeFile(getApplication())
+            wakeDeviceWrapper?.reinitialize()
+        }
+    }
+
+    fun addMwwUserModel(uris: List<Uri>) {
+        if (uris.isEmpty()) return
+        viewModelScope.launch {
+            MicroWakeWordDevice.addUserModelFiles(getApplication(), uris)
+            _hasMwwUserModel.value = MicroWakeWordDevice.userModelFileExists(getApplication())
+            wakeDeviceWrapper?.reinitialize()
+        }
+    }
+
+    fun removeMwwUserModel() {
+        viewModelScope.launch {
+            MicroWakeWordDevice.removeUserModelFile(getApplication())
+            _hasMwwUserModel.value = MicroWakeWordDevice.userModelFileExists(getApplication())
             wakeDeviceWrapper?.reinitialize()
         }
     }

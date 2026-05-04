@@ -139,6 +139,10 @@ fun wakeDevice() = ListSetting(
             name = stringResource(R.string.pref_wake_method_openwakeword),
         ),
         ListSetting.Value(
+            value = WakeDevice.WAKE_DEVICE_MWW,
+            name = stringResource(R.string.pref_wake_method_microwakeword),
+        ),
+        ListSetting.Value(
             value = WakeDevice.WAKE_DEVICE_NOTHING,
             name = stringResource(R.string.pref_wake_method_disabled),
         )
