@@ -138,6 +138,7 @@ dependencies {
     // Dicio own libraries
     implementation(libs.dicio.numbers)
     implementation(project(":skill"))
+    implementation(project(":microwakeword"))
 
     // Android
     implementation(libs.appcompat)
