@@ -46,6 +46,18 @@ data class MicroWakeWordConfig(
                 tfliteUrl = "https://github.com/esphome/micro-wake-word-models/raw/main/models/v2/hey_mycroft.tflite",
                 jsonUrl = "https://raw.githubusercontent.com/esphome/micro-wake-word-models/main/models/v2/hey_mycroft.json",
             ),
+            BuiltinDescriptor(
+                id = "hey_luna",
+                displayName = "Hey Luna",
+                tfliteUrl = "https://github.com/dreimer1986/micro-wake-word-models/raw/main/models/v2/hey_luna_v3.tflite",
+                jsonUrl = "https://raw.githubusercontent.com/dreimer1986/micro-wake-word-models/main/models/v2/hey_luna_v3.json",
+            ),
+            BuiltinDescriptor(
+                id = "hey_glados",
+                displayName = "Hey GLaDOS",
+                tfliteUrl = "https://github.com/Darkmadda/micro-wake-word-models/raw/main/models/v2/GlaDOS/hey_glados.tflite",
+                jsonUrl = "https://raw.githubusercontent.com/Darkmadda/micro-wake-word-models/main/models/v2/GlaDOS/hey_glados.json",
+            ),
         )
 
         fun mwwDir(context: Context): File = File(context.filesDir, ASSET_DIR_NAME)
@@ -75,7 +87,35 @@ data class MicroWakeWordConfig(
             )
         }
 
+        fun installBundledIfMissing(context: Context) {
+            val dir = mwwDir(context).apply { mkdirs() }
+            val mgr = context.assets
+            val names = try {
+                mgr.list(ASSET_DIR_NAME)?.toList() ?: emptyList()
+            } catch (t: Throwable) {
+                Log.w("MicroWakeWordConfig", "Cannot list bundled mww assets", t)
+                return
+            }
+            names.forEach { name ->
+                val out = File(dir, name)
+                if (out.exists() && out.length() > 0L) return@forEach
+                try {
+                    mgr.open("$ASSET_DIR_NAME/$name").use { input ->
+                        val tmp = File(dir, "$name.part")
+                        tmp.outputStream().use { input.copyTo(it) }
+                        if (!tmp.renameTo(out)) {
+                            tmp.delete()
+                            throw java.io.IOException("rename failed for $tmp")
+                        }
+                    }
+                } catch (t: Throwable) {
+                    Log.w("MicroWakeWordConfig", "Failed to install asset $name", t)
+                }
+            }
+        }
+
         fun listAvailable(context: Context): List<MicroWakeWordConfig> {
+            installBundledIfMissing(context)
             val dir = mwwDir(context)
             if (!dir.exists()) return emptyList()
             return dir.listFiles { f -> f.extension == "json" }

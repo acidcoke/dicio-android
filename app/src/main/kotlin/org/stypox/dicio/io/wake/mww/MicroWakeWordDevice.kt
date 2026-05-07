@@ -53,6 +53,7 @@ class MicroWakeWordDevice(
     private val scope = CoroutineScope(Dispatchers.IO)
 
     init {
+        MicroWakeWordConfig.installBundledIfMissing(appContext)
         _state = MutableStateFlow(
             if (filesMissing()) WakeState.NotDownloaded else WakeState.NotLoaded
         )
