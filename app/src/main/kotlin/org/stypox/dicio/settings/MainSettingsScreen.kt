@@ -200,7 +200,7 @@ private fun MainSettingsScreen(
             }
             WakeDevice.WAKE_DEVICE_MWW -> {
                 /* microWakeWord-specific settings */
-                if (mwwConfigs.isNotEmpty()) {
+                if (mwwConfigs.isNotEmpty() || MicroWakeWordConfig.BUILTINS.isNotEmpty()) {
                     item {
                         val currentId = settings.mwwModel.ifBlank { MicroWakeWordConfig.DEFAULT_ID }
                         mwwModel(mwwConfigs).Render(

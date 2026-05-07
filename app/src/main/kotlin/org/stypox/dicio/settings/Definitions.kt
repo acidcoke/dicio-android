@@ -156,12 +156,27 @@ fun mwwModel(configs: List<MicroWakeWordConfig>) = ListSetting(
     title = stringResource(R.string.pref_mww_model),
     icon = Icons.Default.RecordVoiceOver,
     description = stringResource(R.string.pref_mww_model_summary),
-    possibleValues = configs.map { cfg ->
-        ListSetting.Value(
-            value = cfg.id,
-            name = cfg.wakeWord,
-            description = cfg.trainedLanguages.joinToString(", ").ifBlank { null },
-        )
+    possibleValues = buildList {
+        val onDiskIds = configs.mapTo(mutableSetOf()) { it.id }
+        configs.forEach { cfg ->
+            add(
+                ListSetting.Value(
+                    value = cfg.id,
+                    name = cfg.wakeWord,
+                    description = cfg.trainedLanguages.joinToString(", ").ifBlank { null },
+                )
+            )
+        }
+        MicroWakeWordConfig.BUILTINS.forEach { b ->
+            if (b.id !in onDiskIds) {
+                add(
+                    ListSetting.Value(
+                        value = b.id,
+                        name = b.displayName,
+                    )
+                )
+            }
+        }
     },
 )
 
