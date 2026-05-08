@@ -87,6 +87,9 @@ class MainActivity : BaseActivity() {
         handleWakeWordTurnOnScreen(intent)
         if (isAssistIntent(intent)) {
             onAssistIntentReceived()
+
+            val voiceAccess = Intent("com.google.android.apps.accessibility.voiceaccess")
+            startActivity(voiceAccess)
         }
     }
 

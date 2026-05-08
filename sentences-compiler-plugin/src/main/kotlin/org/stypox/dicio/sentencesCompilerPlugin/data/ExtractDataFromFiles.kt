@@ -24,8 +24,8 @@ fun extractDataFromFiles(logger: Logger, inputDirFile: File): ExtractedData {
             val parsedSentences: Map<String, List<String>?> = parseYamlFile(file)
             val expectedSentenceIds = skill.sentences.map { it.id }.toSet()
             if (!parsedSentences.keys.containsAll(expectedSentenceIds)) {
-                throw SentencesCompilerPluginException(
-                    "Skill sentences file ${lang.name}/${
+                logger.warn(
+                    "[Warning] Skill sentences file ${lang.name}/${
                         file.name
                     } is missing these sentence ids ${
                         expectedSentenceIds - parsedSentences.keys
