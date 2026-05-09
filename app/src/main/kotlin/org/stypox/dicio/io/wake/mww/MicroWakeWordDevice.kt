@@ -60,8 +60,7 @@ class MicroWakeWordDevice(
         state = _state
     }
 
-    private fun filesMissing(): Boolean = !tfliteFile.exists() || !jsonFile.exists() ||
-            downloadList.any(FileToDownload::needsToBeDownloaded)
+    private fun filesMissing(): Boolean = !tfliteFile.exists() || !jsonFile.exists()
 
     override fun download() {
         if (downloadList.isEmpty()) {
