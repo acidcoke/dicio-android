@@ -1,7 +1,11 @@
 package org.stypox.dicio.ui.home
 
 import android.Manifest
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,6 +18,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -22,6 +29,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import dev.shreyaspatil.permissionflow.compose.rememberMultiplePermissionState
 import dev.shreyaspatil.permissionflow.compose.rememberPermissionFlowRequestLauncher
 import org.stypox.dicio.R
@@ -53,13 +61,39 @@ fun WakeWordWidget(
     onWakeDownload: () -> Unit,
     onWakeDisable: () -> Unit,
 ) {
+    val context = LocalContext.current
     val permissionsState by rememberMultiplePermissionState(*wakeWordPermissions)
     val launcher = rememberPermissionFlowRequestLauncher()
 
-    if (!permissionsState.allGranted) {
+    var overlayGranted by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
+    LifecycleResumeEffect(null) {
+        overlayGranted = Settings.canDrawOverlays(context)
+        onPauseOrDispose {}
+    }
+
+    val needsNormal = !permissionsState.allGranted
+    val needsOverlay = !needsNormal && !overlayGranted
+
+    if (needsNormal || needsOverlay) {
         WakeWordWidgetImpl(
             wakeState = NoMicOrNotificationPermission,
-            onWakeGrantPermissions = { launcher.launch(wakeWordPermissions) },
+            grantButtonLabelRes = if (needsOverlay) {
+                R.string.wake_word_grant_overlay
+            } else {
+                R.string.grant_permissions
+            },
+            onWakeGrantPermissions = {
+                if (needsNormal) {
+                    launcher.launch(wakeWordPermissions)
+                } else {
+                    context.startActivity(
+                        Intent(
+                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                            Uri.parse("package:" + context.packageName),
+                        )
+                    )
+                }
+            },
             onWakeDownload = onWakeDownload,
             onWakeDisable = onWakeDisable,
         )
@@ -70,6 +104,7 @@ fun WakeWordWidget(
         is WakeState.ErrorDownloading,
         is WakeState.ErrorLoading -> WakeWordWidgetImpl(
             wakeState = wakeState,
+            grantButtonLabelRes = R.string.grant_permissions,
             onWakeGrantPermissions = {},
             onWakeDownload = onWakeDownload,
             onWakeDisable = onWakeDisable,
@@ -82,6 +117,7 @@ fun WakeWordWidget(
 @Composable
 fun WakeWordWidgetImpl(
     wakeState: WakeState,
+    @StringRes grantButtonLabelRes: Int = R.string.grant_permissions,
     onWakeGrantPermissions: () -> Unit,
     onWakeDownload: () -> Unit,
     onWakeDisable: () -> Unit,
@@ -147,7 +183,7 @@ fun WakeWordWidgetImpl(
             when {
                 wakeState == NoMicOrNotificationPermission ->
                     ElevatedButton(onClick = onWakeGrantPermissions) {
-                        Text(text = stringResource(R.string.grant_permissions))
+                        Text(text = stringResource(grantButtonLabelRes))
                     }
 
                 wakeState is WakeState.NotDownloaded ->

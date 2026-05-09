@@ -222,6 +222,7 @@
     <string name="retry">Retry</string>
     <string name="stop">Stop</string>
     <string name="grant_permissions">Grant permissions</string>
+    <string name="wake_word_grant_overlay">Allow display over other apps</string>
     <string name="skill_listening_already_listening">I am already listening for the wake word</string>
     <string name="skill_listening_started_listening">OK, I\'ll listen for the wake word</string>
     <string name="skill_listening_not_listening">I wasn\'t listening</string>
