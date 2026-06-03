@@ -35,6 +35,7 @@ import org.stypox.dicio.R
 import org.stypox.dicio.di.SttInputDeviceWrapper
 import org.stypox.dicio.di.WakeDeviceWrapper
 import org.stypox.dicio.eval.SkillEvaluator
+import org.stypox.dicio.voiceaccess.VoiceAccessService
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
@@ -221,9 +222,71 @@ class WakeService : Service() {
         }
     }
 
+    private val sessionTimeoutRunnable = Runnable {
+        // 30 s of inactivity: end the Voice Access listening session
+        sttInputDevice.stopListening()
+        VoiceAccessService.instance?.hideListening()
+    }
+
+    private val hideListeningRunnable = Runnable {
+        VoiceAccessService.instance?.hideListening()
+    }
+
     private fun onWakeWordDetected() {
         Log.d(TAG, "Wake word detected")
 
+        val service = VoiceAccessService.instance
+        if (service != null) {
+            // Voice Access overlay mode: control the phone hands-free over whatever app is in the
+            // foreground, without bringing the dicio activity forward.
+            onWakeWordDetectedVoiceAccess(service)
+            return
+        }
+
+        // The accessibility service is not enabled yet: fall back to opening the dicio activity,
+        // which can prompt the user to enable Voice Access.
+        onWakeWordDetectedOpenActivity()
+    }
+
+    private fun onWakeWordDetectedVoiceAccess(service: VoiceAccessService) {
+        // show the listening bar over the current app
+        service.showListening()
+        // let the "stop" command stop the STT without needing a reference to the input device
+        service.stopListeningCallback = { sttInputDevice.stopListening() }
+
+        // forward STT events to both the overlay (live transcript) and the skill evaluator
+        sttInputDevice.tryLoad(::onVoiceAccessInputEvent)
+
+        // auto-end the session after 30 seconds of inactivity
+        handler.removeCallbacks(sessionTimeoutRunnable)
+        handler.removeCallbacks(hideListeningRunnable)
+        handler.postDelayed(sessionTimeoutRunnable, VOICE_SESSION_TIMEOUT_MILLIS)
+
+        // unload the STT after a longer while if nothing keeps it alive
+        handler.removeCallbacks(releaseSttResourcesRunnable)
+        handler.postDelayed(releaseSttResourcesRunnable, RELEASE_STT_RESOURCES_MILLIS)
+    }
+
+    private fun onVoiceAccessInputEvent(event: org.stypox.dicio.io.input.InputEvent) {
+        val service = VoiceAccessService.instance
+        when (event) {
+            is org.stypox.dicio.io.input.InputEvent.Partial ->
+                service?.updateTranscript(event.utterance, false)
+            is org.stypox.dicio.io.input.InputEvent.Final -> {
+                service?.updateTranscript(event.utterances.firstOrNull()?.first.orEmpty(), true)
+                handler.removeCallbacks(sessionTimeoutRunnable)
+                handler.postDelayed(hideListeningRunnable, LISTENING_BAR_LINGER_MILLIS)
+            }
+            org.stypox.dicio.io.input.InputEvent.None ->
+                handler.postDelayed(hideListeningRunnable, LISTENING_BAR_LINGER_MILLIS)
+            is org.stypox.dicio.io.input.InputEvent.Error ->
+                handler.post(hideListeningRunnable)
+        }
+        // run the command (back, open, labels, click number, stop, …)
+        skillEvaluator.processInputEvent(event)
+    }
+
+    private fun onWakeWordDetectedOpenActivity() {
         val intent = Intent(this, MainActivity::class.java)
         intent.setAction(ACTION_WAKE_WORD)
         intent.setFlags(FLAG_ACTIVITY_NEW_TASK)
@@ -364,6 +427,8 @@ class WakeService : Service() {
         private const val START_NOTIFICATION_ID = 48019274
         private const val TRIGGERED_NOTIFICATION_ID = 601398647
         private const val WAKE_WORD_BACKOFF_MILLIS = 4000L
+        private const val VOICE_SESSION_TIMEOUT_MILLIS = 30000L // 30 s hands-free session
+        private const val LISTENING_BAR_LINGER_MILLIS = 1500L
         private const val ACTION_STOP_WAKE_SERVICE =
             "org.stypox.dicio.io.wake.WakeService.ACTION_STOP"
         private const val RELEASE_STT_RESOURCES_MILLIS = 1000L * 60 * 5 // 5 minutes

@@ -1,0 +1,7 @@
+go_back:
+  - go|move|navigate? back
+  - go to the? previous screen|page
+
+go_home:
+  - go|navigate? home
+  - go to the? home|main screen

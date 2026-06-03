@@ -58,6 +58,35 @@ skills:
           - id: what
             type: string
 
+  - id: back
+    specificity: high
+    sentences:
+      - id: go_back
+      - id: go_home
+
+  - id: labels
+    specificity: high
+    sentences:
+      - id: show
+      - id: hide
+
+  - id: click_number
+    specificity: high
+    sentences:
+      - id: explicit
+        captures:
+          - id: number
+            type: string
+      - id: bare
+        captures:
+          - id: number
+            type: string
+
+  - id: stop_listening
+    specificity: high
+    sentences:
+      - id: stop
+
   - id: listening
     specificity: high
     sentences:

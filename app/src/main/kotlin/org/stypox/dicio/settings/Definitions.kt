@@ -21,11 +21,13 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material.icons.filled.SpeakerPhone
+import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import org.stypox.dicio.R
 import org.stypox.dicio.settings.datastore.InputDevice
 import org.stypox.dicio.settings.datastore.Language
+import org.stypox.dicio.settings.datastore.NumberSelectionMode
 import org.stypox.dicio.settings.datastore.SpeechOutputDevice
 import org.stypox.dicio.settings.datastore.SttPlaySound
 import org.stypox.dicio.settings.datastore.Theme
@@ -188,6 +190,23 @@ fun sttAutoFinish() = BooleanSetting(
     icon = Icons.AutoMirrored.Filled.Send,
     descriptionOff = stringResource(R.string.pref_stt_auto_finish_summary_off),
     descriptionOn = stringResource(R.string.pref_stt_auto_finish_summary_on),
+)
+
+@Composable
+fun numberSelectionMode() = ListSetting(
+    title = stringResource(R.string.pref_number_selection_mode_title),
+    icon = Icons.Default.TouchApp,
+    description = stringResource(R.string.pref_number_selection_mode_summary),
+    possibleValues = listOf(
+        ListSetting.Value(
+            value = NumberSelectionMode.NUMBER_SELECTION_MODE_EXPLICIT_AND_BARE,
+            name = stringResource(R.string.pref_number_selection_mode_explicit_and_bare),
+        ),
+        ListSetting.Value(
+            value = NumberSelectionMode.NUMBER_SELECTION_MODE_EXPLICIT_ONLY,
+            name = stringResource(R.string.pref_number_selection_mode_explicit_only),
+        ),
+    ),
 )
 
 @Composable

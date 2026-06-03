@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
-    <string name="app_name" translatable="false">Dicio</string>
+    <string name="app_name" translatable="false">Vosk Access</string>
     <string name="drawer_open">Open navigation drawer</string>
     <string name="drawer_close">Close navigation drawer</string>
     <string name="drawer_header_subtitle">May I help you?</string>
@@ -61,6 +61,13 @@
     <!-- settings_header -->
     <string name="pref_io">Input and output methods</string>
     <string name="pref_general">General</string>
+    <string name="pref_voice_access">Voice Access</string>
+    <string name="pref_voice_access_enable_title">Enable Voice Access service</string>
+    <string name="pref_voice_access_enable_summary">Open Accessibility settings to turn on hands-free control</string>
+    <string name="pref_number_selection_mode_title">Number selection</string>
+    <string name="pref_number_selection_mode_summary">How you pick a numbered label by voice</string>
+    <string name="pref_number_selection_mode_explicit_and_bare">\"Tap 5\" or just \"5\"</string>
+    <string name="pref_number_selection_mode_explicit_only">Only \"tap 5\" / \"number 5\"</string>
     <string name="pref_appearance">Appearance</string>
     <string name="pref_skills_title">Skills</string>
     <string name="pref_skills_summary">Enable/disable skills and tune their behavior</string>
@@ -165,6 +172,31 @@
     <string name="skill_weather_min_max_wind">Minimum temperature: %1$.1f%4$s\nMaximum temperature: %2$.1f%4$s\nWind speed: %3$.1f%5$s</string>
     <string name="skill_lyrics_song_not_found">Unable to find song %1$s</string>
     <string name="skill_lyrics_found_song_by_artist">Found %1$s by %2$s</string>
+    <!-- Voice Access overlay mode -->
+    <string name="voice_access_service_label">Vosk Access</string>
+    <string name="voice_access_service_description">Lets you control your phone hands-free: show numbered labels on tappable items and select them by voice, go back, and open apps. Triggered by the wake word.</string>
+    <string name="voice_access_service_summary">Hands-free phone control via voice commands</string>
+    <string name="voice_access_listening">Listening…</string>
+    <string name="voice_access_not_enabled">Enable Dicio Voice Access in Accessibility settings to use voice control</string>
+    <string name="skill_name_back">Go back</string>
+    <string name="skill_sentence_example_back">Go back</string>
+    <string name="skill_back_went_back">Went back</string>
+    <string name="skill_back_went_home">Went home</string>
+    <string name="skill_back_service_disabled">Voice Access is not enabled</string>
+    <string name="skill_name_labels">Show labels</string>
+    <string name="skill_sentence_example_labels">Show labels</string>
+    <string name="skill_labels_showed">Showed labels</string>
+    <string name="skill_labels_hid">Hid labels</string>
+    <string name="skill_labels_service_disabled">Voice Access is not enabled</string>
+    <string name="skill_name_click_number">Tap a number</string>
+    <string name="skill_sentence_example_click_number">Tap 5</string>
+    <string name="skill_click_number_tapped">Tapped %1$d</string>
+    <string name="skill_click_number_no_label">There is no label %1$d</string>
+    <string name="skill_click_number_could_not_understand">Which number?</string>
+    <string name="skill_click_number_service_disabled">Voice Access is not enabled</string>
+    <string name="skill_name_stop_listening">Stop listening</string>
+    <string name="skill_sentence_example_stop_listening">Stop</string>
+    <string name="skill_stop_listening_stopped">Stopped listening</string>
     <string name="skill_open_could_not_understand">Could not understand app</string>
     <string name="skill_open_unknown_app">Unknown app %1$s</string>
     <string name="skill_open_opening">Opening %1$s…</string>

@@ -1,2 +1,3 @@
 query:
   - open|run|execute|view|see|launch the? (app|application? .what.)|(.what. app|application?)
+  - open|launch|start the? .what.

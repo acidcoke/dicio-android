@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Accessibility
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.UploadFile
@@ -26,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -35,6 +37,7 @@ import org.stypox.dicio.R
 import org.stypox.dicio.io.input.SttInputDevice
 import org.stypox.dicio.settings.datastore.InputDevice
 import org.stypox.dicio.settings.datastore.Language
+import org.stypox.dicio.settings.datastore.NumberSelectionMode
 import org.stypox.dicio.settings.datastore.SpeechOutputDevice
 import org.stypox.dicio.settings.datastore.SttPlaySound
 import org.stypox.dicio.settings.datastore.Theme
@@ -43,6 +46,7 @@ import org.stypox.dicio.settings.datastore.WakeDevice
 import org.stypox.dicio.settings.ui.SettingsCategoryTitle
 import org.stypox.dicio.settings.ui.SettingsItem
 import org.stypox.dicio.ui.theme.AppTheme
+import org.stypox.dicio.voiceaccess.VoiceAccessService
 
 
 @Composable
@@ -198,6 +202,30 @@ private fun MainSettingsScreen(
             sttAutoFinish().Render(
                 settings.autoFinishSttPopup,
                 viewModel::setAutoFinishSttPopup
+            )
+        }
+
+        /* VOICE ACCESS */
+        item { SettingsCategoryTitle(stringResource(R.string.pref_voice_access)) }
+        item {
+            val context = LocalContext.current
+            SettingsItem(
+                title = stringResource(R.string.pref_voice_access_enable_title),
+                icon = Icons.Default.Accessibility,
+                description = stringResource(R.string.pref_voice_access_enable_summary),
+                modifier = Modifier.clickable {
+                    context.startActivity(VoiceAccessService.accessibilitySettingsIntent())
+                },
+            )
+        }
+        item {
+            numberSelectionMode().Render(
+                when (val mode = settings.numberSelectionMode) {
+                    NumberSelectionMode.NUMBER_SELECTION_MODE_EXPLICIT_ONLY,
+                    NumberSelectionMode.NUMBER_SELECTION_MODE_EXPLICIT_AND_BARE -> mode
+                    else -> NumberSelectionMode.NUMBER_SELECTION_MODE_EXPLICIT_AND_BARE
+                },
+                viewModel::setNumberSelectionMode,
             )
         }
 

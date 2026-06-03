@@ -1,0 +1,4 @@
+stop:
+  - stop|cancel|exit|quit|dismiss the? (listening|(voice access))?
+  - never mind
+  - done

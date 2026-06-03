@@ -131,5 +131,19 @@
             android:foregroundServiceType="microphone"
             android:icon="@mipmap/ic_launcher"
             android:label="@string/wake_service_label" />
+
+        <service
+            android:name=".voiceaccess.VoiceAccessService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:enabled="true"
+            android:exported="false"
+            android:label="@string/voice_access_service_label">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibilityservice" />
+        </service>
     </application>
 </manifest>
