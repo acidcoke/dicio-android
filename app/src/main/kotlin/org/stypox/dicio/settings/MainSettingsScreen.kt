@@ -23,9 +23,15 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import android.net.Uri
+import android.widget.Toast
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -35,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import org.stypox.dicio.R
 import org.stypox.dicio.io.input.SttInputDevice
+import org.stypox.dicio.io.wake.mww.MicroWakeWordConfig
 import org.stypox.dicio.settings.datastore.InputDevice
 import org.stypox.dicio.settings.datastore.Language
 import org.stypox.dicio.settings.datastore.NumberSelectionMode
@@ -79,9 +86,31 @@ private fun MainSettingsScreen(
     modifier: Modifier = Modifier,
 ) {
     val settings by viewModel.settingsState.collectAsState()
+    val mwwConfigs by viewModel.mwwConfigs.collectAsState()
+    val toastContext = LocalContext.current
+    LaunchedEffect(Unit) {
+        viewModel.userMessages.collect { msg ->
+            Toast.makeText(toastContext, msg, Toast.LENGTH_LONG).show()
+        }
+    }
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {
         if (it != null) {
             viewModel.addOwwUserWakeFile(it)
+        }
+    }
+
+    var pendingMwwTflite by remember { mutableStateOf<Uri?>(null) }
+    val mwwJsonLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { jsonUri ->
+        val tflite = pendingMwwTflite
+        pendingMwwTflite = null
+        if (jsonUri != null && tflite != null) {
+            viewModel.addMwwUserModel(tflite, jsonUri)
+        }
+    }
+    val mwwTfliteLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { tfliteUri ->
+        if (tfliteUri != null) {
+            pendingMwwTflite = tfliteUri
+            mwwJsonLauncher.launch(arrayOf("application/json", "*/*"))
         }
     }
 
@@ -148,28 +177,68 @@ private fun MainSettingsScreen(
                 viewModel::setWakeDevice,
             )
         }
-        if (wakeDevice == WakeDevice.WAKE_DEVICE_OWW) {
-            /* OpenWakeWord-specific settings */
-            item {
-                val isHeyDicio by viewModel.isHeyDicio.collectAsState(true)
-                if (isHeyDicio) {
-                    // the wake word is "Hey Dicio", so there is no custom model at the moment
-                    SettingsItem(
-                        modifier = Modifier.clickable { importLauncher.launch(arrayOf("*/*")) },
-                        title = stringResource(R.string.pref_wake_custom_import),
-                        icon = Icons.Default.UploadFile,
-                        description = stringResource(R.string.pref_wake_custom_import_summary_oww),
-                    )
-                } else {
-                    // a custom model is currently set, give the option to remove it
-                    SettingsItem(
-                        modifier = Modifier.clickable { viewModel.removeOwwUserWakeFile() },
-                        title = stringResource(R.string.pref_wake_custom_delete),
-                        icon = Icons.Default.DeleteSweep,
-                        description = stringResource(R.string.pref_wake_custom_delete_summary),
-                    )
+        when (wakeDevice) {
+            WakeDevice.WAKE_DEVICE_OWW -> {
+                /* OpenWakeWord-specific settings */
+                item {
+                    val isHeyDicio by viewModel.isHeyDicio.collectAsState(true)
+                    if (isHeyDicio) {
+                        // the wake word is "Hey Dicio", so there is no custom model at the moment
+                        SettingsItem(
+                            modifier = Modifier.clickable { importLauncher.launch(arrayOf("*/*")) },
+                            title = stringResource(R.string.pref_wake_custom_import),
+                            icon = Icons.Default.UploadFile,
+                            description = stringResource(R.string.pref_wake_custom_import_summary_oww),
+                        )
+                    } else {
+                        // a custom model is currently set, give the option to remove it
+                        SettingsItem(
+                            modifier = Modifier.clickable { viewModel.removeOwwUserWakeFile() },
+                            title = stringResource(R.string.pref_wake_custom_delete),
+                            icon = Icons.Default.DeleteSweep,
+                            description = stringResource(R.string.pref_wake_custom_delete_summary),
+                        )
+                    }
                 }
             }
+            WakeDevice.WAKE_DEVICE_MWW -> {
+                /* microWakeWord-specific settings */
+                if (mwwConfigs.isNotEmpty() || MicroWakeWordConfig.BUILTINS.isNotEmpty()) {
+                    item {
+                        val currentId = settings.mwwModel.ifBlank { MicroWakeWordConfig.DEFAULT_ID }
+                        mwwModel(mwwConfigs).Render(
+                            currentId,
+                            viewModel::setMwwModel,
+                        )
+                    }
+                }
+                item {
+                    SettingsItem(
+                        modifier = Modifier.clickable {
+                            mwwTfliteLauncher.launch(arrayOf("*/*"))
+                        },
+                        title = stringResource(R.string.pref_wake_custom_import),
+                        icon = Icons.Default.UploadFile,
+                        description = stringResource(R.string.pref_wake_custom_import_summary_mww),
+                    )
+                }
+                val currentId = settings.mwwModel.ifBlank { MicroWakeWordConfig.DEFAULT_ID }
+                if (!MicroWakeWordConfig.isBuiltin(currentId) &&
+                    mwwConfigs.any { it.id == currentId }
+                ) {
+                    item {
+                        SettingsItem(
+                            modifier = Modifier.clickable {
+                                viewModel.removeMwwUserModel(currentId)
+                            },
+                            title = stringResource(R.string.pref_wake_custom_delete),
+                            icon = Icons.Default.DeleteSweep,
+                            description = stringResource(R.string.pref_wake_custom_delete_summary_mww),
+                        )
+                    }
+                }
+            }
+            else -> {}
         }
         item {
             speechOutputDevice().Render(

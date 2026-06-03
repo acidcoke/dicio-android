@@ -22,5 +22,6 @@ message UserSettings {
     WakeDevice wake_device = 8;
     SttPlaySound stt_play_sound = 9;
     int32 stt_silence_duration = 10;
-    NumberSelectionMode number_selection_mode = 11;
+    string mww_model = 11;
+    NumberSelectionMode number_selection_mode = 12;
 }

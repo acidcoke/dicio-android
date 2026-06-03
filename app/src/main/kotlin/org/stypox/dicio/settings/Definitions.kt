@@ -20,11 +20,13 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.PictureInPictureAlt
+import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.SpeakerPhone
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import org.stypox.dicio.R
+import org.stypox.dicio.io.wake.mww.MicroWakeWordConfig
 import org.stypox.dicio.settings.datastore.InputDevice
 import org.stypox.dicio.settings.datastore.Language
 import org.stypox.dicio.settings.datastore.NumberSelectionMode
@@ -141,10 +143,43 @@ fun wakeDevice() = ListSetting(
             name = stringResource(R.string.pref_wake_method_openwakeword),
         ),
         ListSetting.Value(
+            value = WakeDevice.WAKE_DEVICE_MWW,
+            name = stringResource(R.string.pref_wake_method_microwakeword),
+        ),
+        ListSetting.Value(
             value = WakeDevice.WAKE_DEVICE_NOTHING,
             name = stringResource(R.string.pref_wake_method_disabled),
         )
     )
+)
+
+@Composable
+fun mwwModel(configs: List<MicroWakeWordConfig>) = ListSetting(
+    title = stringResource(R.string.pref_mww_model),
+    icon = Icons.Default.RecordVoiceOver,
+    description = stringResource(R.string.pref_mww_model_summary),
+    possibleValues = buildList {
+        val onDiskIds = configs.mapTo(mutableSetOf()) { it.id }
+        configs.forEach { cfg ->
+            add(
+                ListSetting.Value(
+                    value = cfg.id,
+                    name = cfg.wakeWord,
+                    description = cfg.trainedLanguages.joinToString(", ").ifBlank { null },
+                )
+            )
+        }
+        MicroWakeWordConfig.BUILTINS.forEach { b ->
+            if (b.id !in onDiskIds) {
+                add(
+                    ListSetting.Value(
+                        value = b.id,
+                        name = b.displayName,
+                    )
+                )
+            }
+        }
+    },
 )
 
 @Composable

@@ -19,9 +19,12 @@ import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import org.stypox.dicio.io.wake.WakeDevice
 import org.stypox.dicio.io.wake.WakeState
+import org.stypox.dicio.io.wake.mww.MicroWakeWordConfig
+import org.stypox.dicio.io.wake.mww.MicroWakeWordDevice
 import org.stypox.dicio.io.wake.oww.OpenWakeWordDevice
 import org.stypox.dicio.settings.datastore.UserSettings
 import org.stypox.dicio.settings.datastore.WakeDevice.UNRECOGNIZED
+import org.stypox.dicio.settings.datastore.WakeDevice.WAKE_DEVICE_MWW
 import org.stypox.dicio.settings.datastore.WakeDevice.WAKE_DEVICE_NOTHING
 import org.stypox.dicio.settings.datastore.WakeDevice.WAKE_DEVICE_OWW
 import org.stypox.dicio.settings.datastore.WakeDevice.WAKE_DEVICE_UNSET
@@ -78,6 +81,7 @@ class WakeDeviceWrapperImpl(
     private val scope = CoroutineScope(Dispatchers.Default)
 
     private var currentSetting: DataStoreWakeDevice
+    private var currentMwwModel: String
     private var lastFrameHadWrongSize = false
 
     // null means that the user has not enabled any STT input device
@@ -93,8 +97,12 @@ class WakeDeviceWrapperImpl(
         val (firstWakeDeviceSetting, nextWakeDeviceFlow) = dataStore.data
             .map { it.wakeDevice }
             .distinctUntilChangedBlockingFirst()
+        val (firstMwwModel, nextMwwModelFlow) = dataStore.data
+            .map { it.mwwModel }
+            .distinctUntilChangedBlockingFirst()
 
         currentSetting = firstWakeDeviceSetting
+        currentMwwModel = firstMwwModel
         val firstWakeDevice = buildInputDevice(firstWakeDeviceSetting)
         currentDevice = MutableStateFlow(firstWakeDevice)
         _isHeyDicio = MutableStateFlow(firstWakeDevice?.isHeyDicio() ?: true)
@@ -114,6 +122,15 @@ class WakeDeviceWrapperImpl(
         scope.launch {
             nextWakeDeviceFlow.collect(::changeWakeDeviceTo)
         }
+
+        scope.launch {
+            nextMwwModelFlow.collect { newModel ->
+                currentMwwModel = newModel
+                if (currentSetting == WAKE_DEVICE_MWW) {
+                    changeWakeDeviceTo(currentSetting)
+                }
+            }
+        }
     }
 
     private fun changeWakeDeviceTo(setting: DataStoreWakeDevice) {
@@ -132,6 +149,10 @@ class WakeDeviceWrapperImpl(
             UNRECOGNIZED,
             WAKE_DEVICE_UNSET,
             WAKE_DEVICE_OWW -> OpenWakeWordDevice(appContext, okHttpClient)
+            WAKE_DEVICE_MWW -> {
+                val id = currentMwwModel.ifBlank { MicroWakeWordConfig.DEFAULT_ID }
+                MicroWakeWordDevice(appContext, okHttpClient, id)
+            }
             WAKE_DEVICE_NOTHING -> null
         }
     }
