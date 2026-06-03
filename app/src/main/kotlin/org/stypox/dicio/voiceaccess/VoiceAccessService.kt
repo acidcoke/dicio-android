@@ -110,8 +110,9 @@ class VoiceAccessService : AccessibilityService() {
     }
 
     private fun refreshLabels() {
+        val windowList = windows
         labeledNodes = try {
-            ClickableNodeScanner.scan(windows)
+            ClickableNodeScanner.scan(windowList)
         } catch (t: Throwable) {
             Log.e(TAG, "Failed to scan clickable nodes", t)
             emptyList()

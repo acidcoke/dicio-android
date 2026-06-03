@@ -25,7 +25,7 @@ android {
     externalNativeBuild {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
-            version = libs.versions.cmake.get()
+            // version pin removed: using the pip-installed CMake via cmake.dir in local.properties
         }
     }
 
