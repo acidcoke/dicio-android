@@ -203,6 +203,15 @@
     <string name="skill_name_stop_listening">Stop listening</string>
     <string name="skill_sentence_example_stop_listening">Stop</string>
     <string name="skill_stop_listening_stopped">Stopped listening</string>
+    <string name="skill_name_scroll">Scroll and swipe</string>
+    <string name="skill_sentence_example_scroll">Scroll down</string>
+    <string name="skill_scroll_scrolled">Scrolled %1$s</string>
+    <string name="skill_scroll_swiped">Swiped %1$s</string>
+    <string name="skill_scroll_service_disabled">Voice Access is not enabled</string>
+    <string name="direction_up">up</string>
+    <string name="direction_down">down</string>
+    <string name="direction_left">left</string>
+    <string name="direction_right">right</string>
     <string name="skill_open_could_not_understand">Could not understand app</string>
     <string name="skill_open_unknown_app">Unknown app %1$s</string>
     <string name="skill_open_opening">Opening %1$s…</string>

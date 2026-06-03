@@ -80,6 +80,96 @@ class VoiceAccessService : AccessibilityService() {
 
     fun goHome() = runOnMain { performGlobalAction(GLOBAL_ACTION_HOME) }
 
+    // ---------------------------------------------------------------- scrolling & swiping
+
+    /**
+     * Scrolls the most relevant scrollable element so that content moves in [direction] (e.g.
+     * [SwipeDirection.DOWN] reveals content further down). Falls back to a swipe gesture if no
+     * scrollable node is found.
+     */
+    fun scroll(direction: SwipeDirection) = runOnMain {
+        val node = findScrollable()
+        if (node == null || !performScroll(node, direction)) {
+            // no scrollable node: emulate by swiping the finger the opposite way
+            dispatchSwipe(direction.fingerForContentScroll())
+        }
+    }
+
+    /** Performs a raw swipe gesture in the given finger-movement [direction]. */
+    fun swipe(direction: SwipeDirection) = runOnMain { dispatchSwipe(direction) }
+
+    private fun findScrollable(): AccessibilityNodeInfo? {
+        var best: AccessibilityNodeInfo? = null
+        var bestArea = 0
+        val stack = ArrayDeque<AccessibilityNodeInfo>()
+        windows.forEach { it.root?.let(stack::addLast) }
+        while (stack.isNotEmpty()) {
+            val node = stack.removeLast()
+            if (node.isVisibleToUser && node.isScrollable) {
+                val b = android.graphics.Rect()
+                node.getBoundsInScreen(b)
+                val area = b.width() * b.height()
+                if (area > bestArea) {
+                    bestArea = area
+                    best = node
+                }
+            }
+            for (i in 0 until node.childCount) node.getChild(i)?.let(stack::addLast)
+        }
+        return best
+    }
+
+    @SuppressLint("NewApi") // directional scroll actions guarded by the SDK_INT check
+    private fun performScroll(node: AccessibilityNodeInfo, direction: SwipeDirection): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val action = when (direction) {
+                SwipeDirection.UP -> AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_UP
+                SwipeDirection.DOWN -> AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_DOWN
+                SwipeDirection.LEFT -> AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_LEFT
+                SwipeDirection.RIGHT -> AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_RIGHT
+            }
+            if (node.actionList.contains(action) && node.performAction(action.id)) return true
+        }
+        // legacy fallback: forward = down/right, backward = up/left
+        val legacy = when (direction) {
+            SwipeDirection.DOWN, SwipeDirection.RIGHT -> AccessibilityNodeInfo.ACTION_SCROLL_FORWARD
+            SwipeDirection.UP, SwipeDirection.LEFT -> AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD
+        }
+        return node.performAction(legacy)
+    }
+
+    /** To move content in a direction, the finger swipes the opposite way. */
+    private fun SwipeDirection.fingerForContentScroll(): SwipeDirection = when (this) {
+        SwipeDirection.UP -> SwipeDirection.DOWN
+        SwipeDirection.DOWN -> SwipeDirection.UP
+        SwipeDirection.LEFT -> SwipeDirection.RIGHT
+        SwipeDirection.RIGHT -> SwipeDirection.LEFT
+    }
+
+    @SuppressLint("NewApi") // dispatchGesture/GestureDescription guarded by the SDK_INT check
+    private fun dispatchSwipe(direction: SwipeDirection) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return
+        val dm = resources.displayMetrics
+        val cx = dm.widthPixels / 2f
+        val cy = dm.heightPixels / 2f
+        val dx = dm.widthPixels * 0.3f
+        val dy = dm.heightPixels * 0.3f
+
+        val path = android.graphics.Path()
+        when (direction) {
+            SwipeDirection.UP -> { path.moveTo(cx, cy + dy); path.lineTo(cx, cy - dy) }
+            SwipeDirection.DOWN -> { path.moveTo(cx, cy - dy); path.lineTo(cx, cy + dy) }
+            SwipeDirection.LEFT -> { path.moveTo(cx + dx, cy); path.lineTo(cx - dx, cy) }
+            SwipeDirection.RIGHT -> { path.moveTo(cx - dx, cy); path.lineTo(cx + dx, cy) }
+        }
+        val gesture = android.accessibilityservice.GestureDescription.Builder()
+            .addStroke(
+                android.accessibilityservice.GestureDescription.StrokeDescription(path, 0, SWIPE_DURATION_MS)
+            )
+            .build()
+        dispatchGesture(gesture, null, null)
+    }
+
     // ---------------------------------------------------------------- numbered labels
 
     fun areLabelsVisible(): Boolean = labelsVisible
@@ -272,6 +362,7 @@ class VoiceAccessService : AccessibilityService() {
     companion object {
         private val TAG = VoiceAccessService::class.simpleName
         private const val LABEL_REFRESH_DEBOUNCE_MS = 250L
+        private const val SWIPE_DURATION_MS = 250L
 
         @Volatile
         var instance: VoiceAccessService? = null

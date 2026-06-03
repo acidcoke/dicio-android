@@ -87,6 +87,18 @@ skills:
     sentences:
       - id: stop
 
+  - id: scroll
+    specificity: high
+    sentences:
+      - id: scroll_up
+      - id: scroll_down
+      - id: scroll_left
+      - id: scroll_right
+      - id: swipe_up
+      - id: swipe_down
+      - id: swipe_left
+      - id: swipe_right
+
   - id: listening
     specificity: high
     sentences:

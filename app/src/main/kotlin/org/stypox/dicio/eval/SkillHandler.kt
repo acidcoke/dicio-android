@@ -36,6 +36,7 @@ import org.stypox.dicio.skills.back.BackInfo
 import org.stypox.dicio.skills.labels.LabelsInfo
 import org.stypox.dicio.skills.click_number.ClickNumberInfo
 import org.stypox.dicio.skills.stop_listening.StopListeningInfo
+import org.stypox.dicio.skills.scroll.ScrollInfo
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -66,6 +67,7 @@ class SkillHandler @Inject constructor(
         LabelsInfo,
         ClickNumberInfo(dataStore),
         StopListeningInfo,
+        ScrollInfo,
     )
 
     private val fallbackSkillInfoList = listOf(
