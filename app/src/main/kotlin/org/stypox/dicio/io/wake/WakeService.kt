@@ -222,13 +222,27 @@ class WakeService : Service() {
         }
     }
 
+    // true while a hands-free Voice Access session is active (keeps listening across commands)
+    private val voiceSessionActive = AtomicBoolean(false)
+
     private val sessionTimeoutRunnable = Runnable {
-        // 30 s of inactivity: end the Voice Access listening session
-        sttInputDevice.stopListening()
-        VoiceAccessService.instance?.hideListening()
+        // 30 s without a recognized command: end the Voice Access listening session
+        endVoiceSession()
     }
 
-    private val hideListeningRunnable = Runnable {
+    private val rearmListeningRunnable = Runnable {
+        if (voiceSessionActive.get()) {
+            // reset the transcript to the "Listening…" hint and start a new recognition
+            VoiceAccessService.instance?.updateTranscript("", false)
+            sttInputDevice.tryLoad(::onVoiceAccessInputEvent)
+        }
+    }
+
+    private fun endVoiceSession() {
+        voiceSessionActive.set(false)
+        handler.removeCallbacks(sessionTimeoutRunnable)
+        handler.removeCallbacks(rearmListeningRunnable)
+        sttInputDevice.stopListening()
         VoiceAccessService.instance?.hideListening()
     }
 
@@ -249,17 +263,18 @@ class WakeService : Service() {
     }
 
     private fun onWakeWordDetectedVoiceAccess(service: VoiceAccessService) {
+        voiceSessionActive.set(true)
         // show the listening bar over the current app
         service.showListening()
-        // let the "stop" command stop the STT without needing a reference to the input device
-        service.stopListeningCallback = { sttInputDevice.stopListening() }
+        // the "stop" command ends the whole continuous session
+        service.stopListeningCallback = { endVoiceSession() }
 
         // forward STT events to both the overlay (live transcript) and the skill evaluator
         sttInputDevice.tryLoad(::onVoiceAccessInputEvent)
 
-        // auto-end the session after 30 seconds of inactivity
+        // auto-end the session after 30 seconds without a recognized command
         handler.removeCallbacks(sessionTimeoutRunnable)
-        handler.removeCallbacks(hideListeningRunnable)
+        handler.removeCallbacks(rearmListeningRunnable)
         handler.postDelayed(sessionTimeoutRunnable, VOICE_SESSION_TIMEOUT_MILLIS)
 
         // unload the STT after a longer while if nothing keeps it alive
@@ -274,13 +289,16 @@ class WakeService : Service() {
                 service?.updateTranscript(event.utterance, false)
             is org.stypox.dicio.io.input.InputEvent.Final -> {
                 service?.updateTranscript(event.utterances.firstOrNull()?.first.orEmpty(), true)
+                // a command was recognized: reset the inactivity timer and keep listening
                 handler.removeCallbacks(sessionTimeoutRunnable)
-                handler.postDelayed(hideListeningRunnable, LISTENING_BAR_LINGER_MILLIS)
+                handler.postDelayed(sessionTimeoutRunnable, VOICE_SESSION_TIMEOUT_MILLIS)
+                handler.postDelayed(rearmListeningRunnable, REARM_DELAY_MILLIS)
             }
             org.stypox.dicio.io.input.InputEvent.None ->
-                handler.postDelayed(hideListeningRunnable, LISTENING_BAR_LINGER_MILLIS)
+                // silence with no command: keep listening; the inactivity timer still ticks
+                handler.postDelayed(rearmListeningRunnable, REARM_DELAY_MILLIS)
             is org.stypox.dicio.io.input.InputEvent.Error ->
-                handler.post(hideListeningRunnable)
+                endVoiceSession()
         }
         // run the command (back, open, labels, click number, stop, …)
         skillEvaluator.processInputEvent(event)
@@ -427,8 +445,8 @@ class WakeService : Service() {
         private const val START_NOTIFICATION_ID = 48019274
         private const val TRIGGERED_NOTIFICATION_ID = 601398647
         private const val WAKE_WORD_BACKOFF_MILLIS = 4000L
-        private const val VOICE_SESSION_TIMEOUT_MILLIS = 30000L // 30 s hands-free session
-        private const val LISTENING_BAR_LINGER_MILLIS = 1500L
+        private const val VOICE_SESSION_TIMEOUT_MILLIS = 30000L // 30 s inactivity ends session
+        private const val REARM_DELAY_MILLIS = 350L // brief gap before listening for next command
         private const val ACTION_STOP_WAKE_SERVICE =
             "org.stypox.dicio.io.wake.WakeService.ACTION_STOP"
         private const val RELEASE_STT_RESOURCES_MILLIS = 1000L * 60 * 5 // 5 minutes
