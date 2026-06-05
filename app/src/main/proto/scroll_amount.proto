@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+option java_package = "org.stypox.dicio.settings.datastore";
+option java_multiple_files = true;
+
+// How far a single scroll/swipe command moves in Voice Access mode.
+enum ScrollAmount {
+  // Unset is treated as the default, which is MEDIUM.
+  SCROLL_AMOUNT_UNSET = 0;
+  // A small, gentle scroll.
+  SCROLL_AMOUNT_SHORT = 1;
+  // A moderate scroll. This is the default.
+  SCROLL_AMOUNT_MEDIUM = 2;
+  // A large scroll covering most of the screen.
+  SCROLL_AMOUNT_LONG = 3;
+}

@@ -1,7 +1,6 @@
 package org.stypox.dicio.skills.scroll
 
 import org.dicio.skill.context.SkillContext
-import org.dicio.skill.skill.SkillInfo
 import org.dicio.skill.skill.SkillOutput
 import org.dicio.skill.standard.StandardRecognizerData
 import org.dicio.skill.standard.StandardRecognizerSkill
@@ -9,8 +8,8 @@ import org.stypox.dicio.sentences.Sentences.Scroll
 import org.stypox.dicio.voiceaccess.SwipeDirection
 import org.stypox.dicio.voiceaccess.VoiceAccessService
 
-class ScrollSkill(correspondingSkillInfo: SkillInfo, data: StandardRecognizerData<Scroll>) :
-    StandardRecognizerSkill<Scroll>(correspondingSkillInfo, data) {
+class ScrollSkill(private val info: ScrollInfo, data: StandardRecognizerData<Scroll>) :
+    StandardRecognizerSkill<Scroll>(info, data) {
 
     override suspend fun generateOutput(ctx: SkillContext, inputData: Scroll): SkillOutput {
         val service = VoiceAccessService.instance
@@ -27,7 +26,8 @@ class ScrollSkill(correspondingSkillInfo: SkillInfo, data: StandardRecognizerDat
             Scroll.SwipeRight -> true to SwipeDirection.RIGHT
         }
 
-        if (isSwipe) service.swipe(direction) else service.scroll(direction)
+        val fraction = info.swipeFraction
+        if (isSwipe) service.swipe(direction, fraction) else service.scroll(direction, fraction)
         return ScrollOutput(isSwipe = isSwipe, direction = direction, available = true)
     }
 }

@@ -244,6 +244,7 @@ class WakeService : Service() {
         handler.removeCallbacks(rearmListeningRunnable)
         sttInputDevice.stopListening()
         VoiceAccessService.instance?.hideListening()
+        VoiceAccessService.instance?.hideLabels()
     }
 
     private fun onWakeWordDetected() {
@@ -283,6 +284,7 @@ class WakeService : Service() {
     }
 
     private fun onVoiceAccessInputEvent(event: org.stypox.dicio.io.input.InputEvent) {
+        Log.d(TAG, "VoiceAccess input event: ${event::class.simpleName}")
         val service = VoiceAccessService.instance
         when (event) {
             is org.stypox.dicio.io.input.InputEvent.Partial ->

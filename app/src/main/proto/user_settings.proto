@@ -7,6 +7,7 @@ import "speech_output_device.proto";
 import "wake_device.proto";
 import "stt_play_sound.proto";
 import "number_selection_mode.proto";
+import "scroll_amount.proto";
 
 option java_package = "org.stypox.dicio.settings.datastore";
 option java_multiple_files = true;
@@ -24,4 +25,5 @@ message UserSettings {
     int32 stt_silence_duration = 10;
     string mww_model = 11;
     NumberSelectionMode number_selection_mode = 12;
+    ScrollAmount scroll_amount = 13;
 }

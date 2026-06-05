@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.SpeakerPhone
+import androidx.compose.material.icons.filled.SwipeVertical
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
@@ -30,6 +31,7 @@ import org.stypox.dicio.io.wake.mww.MicroWakeWordConfig
 import org.stypox.dicio.settings.datastore.InputDevice
 import org.stypox.dicio.settings.datastore.Language
 import org.stypox.dicio.settings.datastore.NumberSelectionMode
+import org.stypox.dicio.settings.datastore.ScrollAmount
 import org.stypox.dicio.settings.datastore.SpeechOutputDevice
 import org.stypox.dicio.settings.datastore.SttPlaySound
 import org.stypox.dicio.settings.datastore.Theme
@@ -240,6 +242,27 @@ fun numberSelectionMode() = ListSetting(
         ListSetting.Value(
             value = NumberSelectionMode.NUMBER_SELECTION_MODE_EXPLICIT_ONLY,
             name = stringResource(R.string.pref_number_selection_mode_explicit_only),
+        ),
+    ),
+)
+
+@Composable
+fun scrollAmount() = ListSetting(
+    title = stringResource(R.string.pref_scroll_amount_title),
+    icon = Icons.Default.SwipeVertical,
+    description = stringResource(R.string.pref_scroll_amount_summary),
+    possibleValues = listOf(
+        ListSetting.Value(
+            value = ScrollAmount.SCROLL_AMOUNT_SHORT,
+            name = stringResource(R.string.pref_scroll_amount_short),
+        ),
+        ListSetting.Value(
+            value = ScrollAmount.SCROLL_AMOUNT_MEDIUM,
+            name = stringResource(R.string.pref_scroll_amount_medium),
+        ),
+        ListSetting.Value(
+            value = ScrollAmount.SCROLL_AMOUNT_LONG,
+            name = stringResource(R.string.pref_scroll_amount_long),
         ),
     ),
 )

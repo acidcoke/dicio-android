@@ -23,6 +23,7 @@ import org.stypox.dicio.io.wake.oww.OpenWakeWordDevice
 import org.stypox.dicio.settings.datastore.InputDevice
 import org.stypox.dicio.settings.datastore.Language
 import org.stypox.dicio.settings.datastore.NumberSelectionMode
+import org.stypox.dicio.settings.datastore.ScrollAmount
 import org.stypox.dicio.settings.datastore.SpeechOutputDevice
 import org.stypox.dicio.settings.datastore.SttPlaySound
 import org.stypox.dicio.settings.datastore.Theme
@@ -174,4 +175,6 @@ class MainSettingsViewModel @Inject constructor(
         updateData { it.setAutoFinishSttPopup(value) }
     fun setNumberSelectionMode(value: NumberSelectionMode) =
         updateData { it.setNumberSelectionMode(value) }
+    fun setScrollAmount(value: ScrollAmount) =
+        updateData { it.setScrollAmount(value) }
 }

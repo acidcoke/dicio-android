@@ -67,7 +67,7 @@ class SkillHandler @Inject constructor(
         LabelsInfo,
         ClickNumberInfo(dataStore),
         StopListeningInfo,
-        ScrollInfo,
+        ScrollInfo(dataStore),
     )
 
     private val fallbackSkillInfoList = listOf(

@@ -42,6 +42,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import org.stypox.dicio.R
 import org.stypox.dicio.io.input.SttInputDevice
 import org.stypox.dicio.io.wake.mww.MicroWakeWordConfig
+import org.stypox.dicio.skills.scroll.ScrollInfo
 import org.stypox.dicio.settings.datastore.InputDevice
 import org.stypox.dicio.settings.datastore.Language
 import org.stypox.dicio.settings.datastore.NumberSelectionMode
@@ -295,6 +296,12 @@ private fun MainSettingsScreen(
                     else -> NumberSelectionMode.NUMBER_SELECTION_MODE_EXPLICIT_AND_BARE
                 },
                 viewModel::setNumberSelectionMode,
+            )
+        }
+        item {
+            scrollAmount().Render(
+                ScrollInfo.normalize(settings.scrollAmount),
+                viewModel::setScrollAmount,
             )
         }
 

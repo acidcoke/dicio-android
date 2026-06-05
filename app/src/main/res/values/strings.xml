@@ -68,6 +68,11 @@
     <string name="pref_number_selection_mode_summary">How you pick a numbered label by voice</string>
     <string name="pref_number_selection_mode_explicit_and_bare">\"Tap 5\" or just \"5\"</string>
     <string name="pref_number_selection_mode_explicit_only">Only \"tap 5\" / \"number 5\"</string>
+    <string name="pref_scroll_amount_title">Scroll distance</string>
+    <string name="pref_scroll_amount_summary">How far one scroll or swipe moves</string>
+    <string name="pref_scroll_amount_short">Short</string>
+    <string name="pref_scroll_amount_medium">Medium</string>
+    <string name="pref_scroll_amount_long">Long</string>
     <string name="pref_appearance">Appearance</string>
     <string name="pref_skills_title">Skills</string>
     <string name="pref_skills_summary">Enable/disable skills and tune their behavior</string>
