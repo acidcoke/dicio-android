@@ -22,6 +22,7 @@ import org.stypox.dicio.io.wake.mww.MicroWakeWordDevice
 import org.stypox.dicio.io.wake.oww.OpenWakeWordDevice
 import org.stypox.dicio.settings.datastore.InputDevice
 import org.stypox.dicio.settings.datastore.Language
+import org.stypox.dicio.settings.datastore.LabelTheme
 import org.stypox.dicio.settings.datastore.NumberSelectionMode
 import org.stypox.dicio.settings.datastore.ScrollAmount
 import org.stypox.dicio.settings.datastore.SpeechOutputDevice
@@ -177,4 +178,10 @@ class MainSettingsViewModel @Inject constructor(
         updateData { it.setNumberSelectionMode(value) }
     fun setScrollAmount(value: ScrollAmount) =
         updateData { it.setScrollAmount(value) }
+    fun setLabelOpacity(value: Int) =
+        updateData { it.setLabelOpacity(value) }
+    fun setLabelContrast(value: Int) =
+        updateData { it.setLabelContrast(value) }
+    fun setLabelTheme(value: LabelTheme) =
+        updateData { it.setLabelTheme(value) }
 }

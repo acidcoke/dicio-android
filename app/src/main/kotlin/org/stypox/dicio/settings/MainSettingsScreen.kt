@@ -43,7 +43,9 @@ import org.stypox.dicio.R
 import org.stypox.dicio.io.input.SttInputDevice
 import org.stypox.dicio.io.wake.mww.MicroWakeWordConfig
 import org.stypox.dicio.skills.scroll.ScrollInfo
+import org.stypox.dicio.voiceaccess.LabelStyle
 import org.stypox.dicio.settings.datastore.InputDevice
+import org.stypox.dicio.settings.datastore.LabelTheme
 import org.stypox.dicio.settings.datastore.Language
 import org.stypox.dicio.settings.datastore.NumberSelectionMode
 import org.stypox.dicio.settings.datastore.SpeechOutputDevice
@@ -302,6 +304,28 @@ private fun MainSettingsScreen(
             scrollAmount().Render(
                 ScrollInfo.normalize(settings.scrollAmount),
                 viewModel::setScrollAmount,
+            )
+        }
+        item {
+            labelTheme().Render(
+                when (val theme = settings.labelTheme) {
+                    LabelTheme.LABEL_THEME_DARK,
+                    LabelTheme.LABEL_THEME_LIGHT -> theme
+                    else -> LabelTheme.LABEL_THEME_DARK
+                },
+                viewModel::setLabelTheme,
+            )
+        }
+        item {
+            labelOpacity().Render(
+                settings.labelOpacity.takeIf { it != 0 } ?: LabelStyle.DEFAULT_OPACITY_PERCENT,
+                viewModel::setLabelOpacity,
+            )
+        }
+        item {
+            labelContrast().Render(
+                settings.labelContrast.takeIf { it != 0 } ?: LabelStyle.DEFAULT_CONTRAST_PERCENT,
+                viewModel::setLabelContrast,
             )
         }
 

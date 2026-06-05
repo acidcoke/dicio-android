@@ -8,6 +8,7 @@ import "wake_device.proto";
 import "stt_play_sound.proto";
 import "number_selection_mode.proto";
 import "scroll_amount.proto";
+import "label_theme.proto";
 
 option java_package = "org.stypox.dicio.settings.datastore";
 option java_multiple_files = true;
@@ -26,4 +27,8 @@ message UserSettings {
     string mww_model = 11;
     NumberSelectionMode number_selection_mode = 12;
     ScrollAmount scroll_amount = 13;
+    // Voice Access numbered-label appearance. 0 means unset → a sensible default is used.
+    int32 label_opacity = 14;   // chip opacity, 20..100 (%)
+    int32 label_contrast = 15;  // chip/text contrast, 10..100 (%)
+    LabelTheme label_theme = 16; // light or dark chip colors
 }

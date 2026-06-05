@@ -73,6 +73,14 @@
     <string name="pref_scroll_amount_short">Short</string>
     <string name="pref_scroll_amount_medium">Medium</string>
     <string name="pref_scroll_amount_long">Long</string>
+    <string name="pref_label_opacity_title">Label opacity</string>
+    <string name="pref_label_opacity_description">%1$d%%</string>
+    <string name="pref_label_contrast_title">Label contrast</string>
+    <string name="pref_label_contrast_description">%1$d%%</string>
+    <string name="pref_label_theme_title">Label colors</string>
+    <string name="pref_label_theme_summary">Color scheme of the numbered labels</string>
+    <string name="pref_label_theme_dark">Dark (light text)</string>
+    <string name="pref_label_theme_light">Light (dark text)</string>
     <string name="pref_appearance">Appearance</string>
     <string name="pref_skills_title">Skills</string>
     <string name="pref_skills_summary">Enable/disable skills and tune their behavior</string>

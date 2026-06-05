@@ -13,6 +13,18 @@ import android.view.Gravity
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import androidx.datastore.core.DataStore
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import org.stypox.dicio.settings.datastore.UserSettings
 
 /**
  * The AccessibilityService that powers the open-source Voice Access mode. It is the only component
@@ -27,9 +39,19 @@ class VoiceAccessService : AccessibilityService() {
     private var labelOverlay: LabelOverlayView? = null
     private var listeningBar: ListeningBarView? = null
 
+    // whether the user wants labels shown; remembered across listening sessions
     @Volatile
     private var labelsVisible = false
+    // whether a listening session is currently active (the overlay is only drawn while it is)
+    @Volatile
+    private var sessionActive = false
     private var labeledNodes: List<LabeledNode> = emptyList()
+
+    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+
+    /** Current user-configured label appearance, kept in sync with the settings data store. */
+    @Volatile
+    private var labelStyle: LabelStyle = LabelStyle.DEFAULT
 
     /**
      * Set by [org.stypox.dicio.io.wake.WakeService] when it starts an STT session, so that the
@@ -42,11 +64,27 @@ class VoiceAccessService : AccessibilityService() {
         super.onServiceConnected()
         windowManager = getSystemService(WindowManager::class.java)
         instance = this
+        collectLabelStyle()
         Log.d(TAG, "VoiceAccessService connected")
     }
 
+    private fun collectLabelStyle() {
+        val dataStore = EntryPointAccessors
+            .fromApplication(applicationContext, VoiceAccessEntryPoint::class.java)
+            .dataStore()
+        scope.launch {
+            dataStore.data
+                .map { LabelStyle.from(it.labelOpacity, it.labelContrast, it.labelTheme) }
+                .distinctUntilChanged()
+                .collect { style ->
+                    labelStyle = style
+                    labelOverlay?.applyStyle(style)
+                }
+        }
+    }
+
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (!labelsVisible || event == null) return
+        if (!labelsVisible || !sessionActive || event == null) return
         when (event.eventType) {
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED,
             AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> scheduleLabelRefresh()
@@ -63,6 +101,7 @@ class VoiceAccessService : AccessibilityService() {
 
     override fun onDestroy() {
         cleanup()
+        scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
         if (instance === this) instance = null
         super.onDestroy()
     }
@@ -133,7 +172,7 @@ class VoiceAccessService : AccessibilityService() {
 
     fun showLabels() = runOnMain {
         labelsVisible = true
-        refreshLabels()
+        if (sessionActive) refreshLabels()
     }
 
     fun hideLabels() = runOnMain {
@@ -149,7 +188,7 @@ class VoiceAccessService : AccessibilityService() {
     /** @return the number of labels currently shown, useful for spoken feedback */
     fun labelCount(): Int = labeledNodes.size
 
-    private val refreshRunnable = Runnable { if (labelsVisible) refreshLabels() }
+    private val refreshRunnable = Runnable { if (labelsVisible && sessionActive) refreshLabels() }
 
     private fun scheduleLabelRefresh() {
         handler.removeCallbacks(refreshRunnable)
@@ -168,6 +207,7 @@ class VoiceAccessService : AccessibilityService() {
         val wm = windowManager ?: return
         if (labelOverlay == null) {
             val view = LabelOverlayView(this)
+            view.applyStyle(labelStyle)
             try {
                 wm.addView(view, labelOverlayParams())
                 labelOverlay = view
@@ -220,6 +260,7 @@ class VoiceAccessService : AccessibilityService() {
     // ---------------------------------------------------------------- listening bar
 
     fun showListening() = runOnMain {
+        sessionActive = true
         val wm = windowManager ?: return@runOnMain
         if (listeningBar == null) {
             val view = ListeningBarView(this)
@@ -231,19 +272,29 @@ class VoiceAccessService : AccessibilityService() {
             }
         }
         listeningBar?.setTranscript("", isFinal = false)
+        // restore the labels if the user had them on in a previous session
+        if (labelsVisible) refreshLabels()
     }
 
     fun updateTranscript(text: String, isFinal: Boolean) = runOnMain {
         listeningBar?.setTranscript(text, isFinal)
     }
 
-    fun hideListening() = runOnMain { removeListeningBar() }
+    /**
+     * Ends the listening session UI: removes the listening bar and the label overlay, but keeps the
+     * user's label on/off choice so the next session restores it.
+     */
+    fun hideListening() = runOnMain {
+        sessionActive = false
+        removeListeningBar()
+        // pause the overlay only; labelsVisible (the user's intent) is intentionally kept
+        removeLabelOverlay()
+    }
 
-    /** Ends the whole session: stops STT, removes the listening bar and any labels. */
+    /** Ends the whole session: stops STT and tears down the overlays (label state is remembered). */
     fun stopVoiceSession() {
         stopListeningCallback?.invoke()
         hideListening()
-        hideLabels()
     }
 
     // ---------------------------------------------------------------- overlay plumbing
@@ -335,5 +386,12 @@ class VoiceAccessService : AccessibilityService() {
         fun accessibilitySettingsIntent(): Intent =
             Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+
+    /** Lets this non-Hilt AccessibilityService reach the settings data store. */
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
+    interface VoiceAccessEntryPoint {
+        fun dataStore(): DataStore<UserSettings>
     }
 }

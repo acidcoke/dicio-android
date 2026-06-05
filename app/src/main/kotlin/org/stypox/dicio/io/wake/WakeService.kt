@@ -243,8 +243,8 @@ class WakeService : Service() {
         handler.removeCallbacks(sessionTimeoutRunnable)
         handler.removeCallbacks(rearmListeningRunnable)
         sttInputDevice.stopListening()
+        // hideListening() tears down both overlays but remembers the user's label on/off choice
         VoiceAccessService.instance?.hideListening()
-        VoiceAccessService.instance?.hideLabels()
     }
 
     private fun onWakeWordDetected() {

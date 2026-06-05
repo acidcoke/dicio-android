@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+option java_package = "org.stypox.dicio.settings.datastore";
+option java_multiple_files = true;
+
+// Color scheme of the Voice Access numbered labels.
+enum LabelTheme {
+  // Unset is treated as the default, which is DARK.
+  LABEL_THEME_UNSET = 0;
+  // Dark chip with light text (the classic Voice Access look). This is the default.
+  LABEL_THEME_DARK = 1;
+  // Light chip with dark text.
+  LABEL_THEME_LIGHT = 2;
+}

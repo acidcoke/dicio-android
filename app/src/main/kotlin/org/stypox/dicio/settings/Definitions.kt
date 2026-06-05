@@ -7,7 +7,9 @@ import androidx.compose.material.icons.filled.BreakfastDining
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.ColorLens
+import androidx.compose.material.icons.filled.Contrast
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Opacity
 import androidx.compose.material.icons.filled.Hearing
 import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.InvertColors
@@ -30,6 +32,7 @@ import org.stypox.dicio.R
 import org.stypox.dicio.io.wake.mww.MicroWakeWordConfig
 import org.stypox.dicio.settings.datastore.InputDevice
 import org.stypox.dicio.settings.datastore.Language
+import org.stypox.dicio.settings.datastore.LabelTheme
 import org.stypox.dicio.settings.datastore.NumberSelectionMode
 import org.stypox.dicio.settings.datastore.ScrollAmount
 import org.stypox.dicio.settings.datastore.SpeechOutputDevice
@@ -263,6 +266,41 @@ fun scrollAmount() = ListSetting(
         ListSetting.Value(
             value = ScrollAmount.SCROLL_AMOUNT_LONG,
             name = stringResource(R.string.pref_scroll_amount_long),
+        ),
+    ),
+)
+
+@Composable
+fun labelOpacity() = IntSetting(
+    title = stringResource(R.string.pref_label_opacity_title),
+    icon = Icons.Default.Opacity,
+    description = @Composable { stringResource(R.string.pref_label_opacity_description, it) },
+    minimum = 20,
+    maximum = 100,
+)
+
+@Composable
+fun labelContrast() = IntSetting(
+    title = stringResource(R.string.pref_label_contrast_title),
+    icon = Icons.Default.Contrast,
+    description = @Composable { stringResource(R.string.pref_label_contrast_description, it) },
+    minimum = 10,
+    maximum = 100,
+)
+
+@Composable
+fun labelTheme() = ListSetting(
+    title = stringResource(R.string.pref_label_theme_title),
+    icon = Icons.Default.DarkMode,
+    description = stringResource(R.string.pref_label_theme_summary),
+    possibleValues = listOf(
+        ListSetting.Value(
+            value = LabelTheme.LABEL_THEME_DARK,
+            name = stringResource(R.string.pref_label_theme_dark),
+        ),
+        ListSetting.Value(
+            value = LabelTheme.LABEL_THEME_LIGHT,
+            name = stringResource(R.string.pref_label_theme_light),
         ),
     ),
 )
