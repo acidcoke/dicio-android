@@ -24,7 +24,9 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.stypox.dicio.settings.datastore.UserSettings
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * The AccessibilityService that powers the open-source Voice Access mode. It is the only component
@@ -87,7 +89,8 @@ class VoiceAccessService : AccessibilityService() {
         if (!labelsVisible || !sessionActive || event == null) return
         when (event.eventType) {
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED,
-            AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> scheduleLabelRefresh()
+            AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED,
+            AccessibilityEvent.TYPE_WINDOWS_CHANGED -> scheduleLabelRefresh()
         }
     }
 
@@ -172,12 +175,16 @@ class VoiceAccessService : AccessibilityService() {
 
     fun showLabels() = runOnMain {
         labelsVisible = true
-        if (sessionActive) refreshLabels()
+        if (sessionActive) {
+            refreshLabels()
+            startLabelPolling()
+        }
     }
 
     fun hideLabels() = runOnMain {
         labelsVisible = false
         labeledNodes = emptyList()
+        stopLabelPolling()
         removeLabelOverlay()
     }
 
@@ -188,21 +195,76 @@ class VoiceAccessService : AccessibilityService() {
     /** @return the number of labels currently shown, useful for spoken feedback */
     fun labelCount(): Int = labeledNodes.size
 
+    private var lastRefreshUptimeMs = 0L
+    private val scanInProgress = AtomicBoolean(false)
+
     private val refreshRunnable = Runnable { if (labelsVisible && sessionActive) refreshLabels() }
 
+    /**
+     * Periodic safety-net rescan. Some surfaces (notably the dialpad / phone-number IME) change
+     * their layout without sending content-changed events we receive, so the event-driven refresh
+     * never fires. Polling while labels are shown keeps them in sync regardless.
+     */
+    private val pollRunnable = object : Runnable {
+        override fun run() {
+            if (!labelsVisible || !sessionActive) return
+            refreshLabels()
+            handler.postDelayed(this, LABEL_POLL_INTERVAL_MS)
+        }
+    }
+
+    private fun startLabelPolling() {
+        handler.removeCallbacks(pollRunnable)
+        handler.postDelayed(pollRunnable, LABEL_POLL_INTERVAL_MS)
+    }
+
+    private fun stopLabelPolling() {
+        handler.removeCallbacks(pollRunnable)
+    }
+
+    /**
+     * Debounce + throttle: coalesce bursts of accessibility events, but guarantee a refresh at least
+     * every [LABEL_REFRESH_MAX_WAIT_MS] so a continuous stream (e.g. a keyboard layer switch, which
+     * fires content-changed events nonstop) can't starve the update indefinitely.
+     */
     private fun scheduleLabelRefresh() {
         handler.removeCallbacks(refreshRunnable)
-        handler.postDelayed(refreshRunnable, LABEL_REFRESH_DEBOUNCE_MS)
+        val sinceLast = android.os.SystemClock.uptimeMillis() - lastRefreshUptimeMs
+        val delay = if (sinceLast >= LABEL_REFRESH_MAX_WAIT_MS) {
+            0L
+        } else {
+            LABEL_REFRESH_DEBOUNCE_MS.coerceAtMost(LABEL_REFRESH_MAX_WAIT_MS - sinceLast)
+        }
+        handler.postDelayed(refreshRunnable, delay)
     }
 
     private fun refreshLabels() {
-        val windowList = windows
-        labeledNodes = try {
-            ClickableNodeScanner.scan(windowList)
-        } catch (t: Throwable) {
-            Log.e(TAG, "Failed to scan clickable nodes", t)
-            emptyList()
+        lastRefreshUptimeMs = android.os.SystemClock.uptimeMillis()
+        // skip if a scan is already running, so a fast poll can't pile up overlapping scans
+        if (!scanInProgress.compareAndSet(false, true)) return
+        // The accessibility node tree is cached and only invalidated by events. Some surfaces (e.g.
+        // the dialpad) change layout without sending us events, so without clearing the cache the
+        // poll would keep re-reading a stale tree. clearCache() forces the next reads to be fresh.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            clearCache()
         }
+        val windowList = windows
+        scope.launch(Dispatchers.Default) {
+            val nodes = try {
+                ClickableNodeScanner.scan(windowList)
+            } catch (t: Throwable) {
+                Log.e(TAG, "Failed to scan clickable nodes", t)
+                emptyList()
+            }
+            withContext(Dispatchers.Main) { renderLabels(nodes) }
+            scanInProgress.set(false)
+        }
+    }
+
+    private fun renderLabels(nodes: List<LabeledNode>) {
+        // the session may have ended while the (off-main-thread) scan was running
+        if (!labelsVisible || !sessionActive) return
+        labeledNodes = nodes
 
         val wm = windowManager ?: return
         if (labelOverlay == null) {
@@ -216,7 +278,7 @@ class VoiceAccessService : AccessibilityService() {
                 return
             }
         }
-        labelOverlay?.setLabels(labeledNodes)
+        labelOverlay?.setLabels(nodes)
     }
 
     /**
@@ -273,7 +335,10 @@ class VoiceAccessService : AccessibilityService() {
         }
         listeningBar?.setTranscript("", isFinal = false)
         // restore the labels if the user had them on in a previous session
-        if (labelsVisible) refreshLabels()
+        if (labelsVisible) {
+            refreshLabels()
+            startLabelPolling()
+        }
     }
 
     fun updateTranscript(text: String, isFinal: Boolean) = runOnMain {
@@ -286,6 +351,7 @@ class VoiceAccessService : AccessibilityService() {
      */
     fun hideListening() = runOnMain {
         sessionActive = false
+        stopLabelPolling()
         removeListeningBar()
         // pause the overlay only; labelsVisible (the user's intent) is intentionally kept
         removeLabelOverlay()
@@ -369,7 +435,12 @@ class VoiceAccessService : AccessibilityService() {
 
     companion object {
         private val TAG = VoiceAccessService::class.simpleName
-        private const val LABEL_REFRESH_DEBOUNCE_MS = 250L
+        private const val LABEL_REFRESH_DEBOUNCE_MS = 80L
+        // hard cap so a nonstop event stream (e.g. keyboard layer switch) still refreshes
+        private const val LABEL_REFRESH_MAX_WAIT_MS = 200L
+        // safety-net poll for surfaces that change layout without sending us events (e.g. dialpad);
+        // the scan runs off the main thread, so this can be frequent without causing UI jank
+        private const val LABEL_POLL_INTERVAL_MS = 120L
         // a deliberate (non-fling) swipe so scrolling is controlled, not flung
         private const val SWIPE_DURATION_MS = 400L
         // default swipe distance as a portion of the screen, if no amount is given
