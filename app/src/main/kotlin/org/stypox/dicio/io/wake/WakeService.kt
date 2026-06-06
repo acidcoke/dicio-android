@@ -34,6 +34,10 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import androidx.datastore.core.DataStore
+import org.dicio.skill.standard.util.MatchHelper
+import org.stypox.dicio.di.SkillContextInternal
+import org.stypox.dicio.sentences.Sentences
+import org.stypox.dicio.sentences.Sentences.Confirmation
 import org.stypox.dicio.settings.datastore.ListeningDuration
 import org.stypox.dicio.settings.datastore.UserSettings
 import org.stypox.dicio.MainActivity
@@ -64,6 +68,8 @@ class WakeService : Service() {
     lateinit var wakeDevice: WakeDeviceWrapper
     @Inject
     lateinit var dataStore: DataStore<UserSettings>
+    @Inject
+    lateinit var skillContext: SkillContextInternal
 
     private val handler = Handler(Looper.getMainLooper())
     private val releaseSttResourcesRunnable = Runnable {
@@ -512,13 +518,13 @@ class WakeService : Service() {
             is org.stypox.dicio.io.input.InputEvent.Partial ->
                 service?.updateTranscript(event.utterance, false)
             is org.stypox.dicio.io.input.InputEvent.Final -> {
-                val said = event.utterances.joinToString(" ") { it.first }
-                service?.updateTranscript(event.utterances.firstOrNull()?.first.orEmpty(), true)
-                when {
-                    said.containsAnyWord(CONTINUE_WORDS) -> resumeFromContinueConfirmation()
-                    said.containsAnyWord(STOP_WORDS) -> endVoiceSession()
-                    // anything else is ignored; keep listening for an answer
-                    else -> handler.postDelayed(rearmListeningRunnable, REARM_DELAY_MILLIS)
+                val said = event.utterances.firstOrNull()?.first.orEmpty()
+                service?.updateTranscript(said, true)
+                when (classifyConfirmation(said)) {
+                    is Confirmation.Continue -> resumeFromContinueConfirmation()
+                    is Confirmation.Stop -> endVoiceSession()
+                    // not understood: keep listening for an answer
+                    null -> handler.postDelayed(rearmListeningRunnable, REARM_DELAY_MILLIS)
                 }
             }
             org.stypox.dicio.io.input.InputEvent.None,
@@ -528,9 +534,15 @@ class WakeService : Service() {
         }
     }
 
-    private fun String.containsAnyWord(words: List<String>): Boolean {
-        val tokens = lowercase().split(' ', ',', '.', '!', '?').filter { it.isNotBlank() }
-        return words.any { it in tokens }
+    /**
+     * Matches the spoken answer against the per-language continue/stop sentences. Returns the
+     * matched [Confirmation] (Continue/Stop) or null if it scored too low to be either.
+     */
+    private fun classifyConfirmation(said: String): Confirmation? {
+        val data = Sentences.Confirmation[skillContext.sentencesLanguage] ?: return null
+        val helper = MatchHelper(skillContext.parserFormatter, said)
+        val (score, result) = data.score(helper, said)
+        return if (score.scoreIn01Range() >= CONFIRMATION_THRESHOLD) result else null
     }
 
     private fun onWakeWordDetectedOpenActivity() {
@@ -678,9 +690,8 @@ class WakeService : Service() {
         private const val SCREEN_WAKE_MILLIS = 3000L // how long to force the screen on when waking
         // default unrecognized results before asking to continue (when the setting is unset)
         const val DEFAULT_INVALID_COMMANDS_BEFORE_PROMPT = 3
-        // words that dismiss the continue/stop prompt by voice
-        private val CONTINUE_WORDS = listOf("continue", "resume", "yes", "yeah", "keep")
-        private val STOP_WORDS = listOf("stop", "cancel", "no", "quit", "exit", "done")
+        // minimum recognizer score for a spoken continue/stop answer to count (mirrors SkillRanker)
+        private const val CONFIRMATION_THRESHOLD = 0.7f
         private const val REARM_DELAY_MILLIS = 350L // brief gap before listening for next command
         private const val ACTION_STOP_WAKE_SERVICE =
             "org.stypox.dicio.io.wake.WakeService.ACTION_STOP"

@@ -87,6 +87,12 @@ skills:
     sentences:
       - id: stop
 
+  - id: confirmation
+    specificity: high
+    sentences:
+      - id: continue
+      - id: stop
+
   - id: scroll
     specificity: high
     sentences:
