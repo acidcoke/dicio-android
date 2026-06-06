@@ -308,6 +308,17 @@ fun listeningDuration() = ListSetting(
 )
 
 @Composable
+fun invalidCommandsBeforePrompt() = IntSetting(
+    title = stringResource(R.string.pref_invalid_commands_before_prompt_title),
+    icon = Icons.Default.Timer,
+    description = @Composable {
+        stringResource(R.string.pref_invalid_commands_before_prompt_description, it)
+    },
+    minimum = 1,
+    maximum = 7,
+)
+
+@Composable
 fun labelTheme() = ListSetting(
     title = stringResource(R.string.pref_label_theme_title),
     icon = Icons.Default.DarkMode,

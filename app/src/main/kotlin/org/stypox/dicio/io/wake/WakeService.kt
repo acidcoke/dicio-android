@@ -99,6 +99,15 @@ class WakeService : Service() {
                 .collect { listeningDuration = normalizeListeningDuration(it) }
         }
 
+        scope.launch {
+            dataStore.data
+                .map { it.invalidCommandsBeforePrompt }
+                .collect {
+                    invalidCommandsBeforePrompt =
+                        if (it <= 0) DEFAULT_INVALID_COMMANDS_BEFORE_PROMPT else it
+                }
+        }
+
         // Screen on/off cannot be declared in the manifest, so register dynamically. Used to pause
         // the Voice Access listening session while the screen is off and resume it when it comes on.
         registerReceiver(screenReceiver, IntentFilter().apply {
@@ -260,6 +269,15 @@ class WakeService : Service() {
     @Volatile
     private var resumeOnScreenOn = false
 
+    // consecutive results that were not understood; at the threshold the continue/stop prompt shows
+    private var invalidCommandCount = 0
+    // configurable threshold of unrecognized commands before showing the continue/stop prompt
+    @Volatile
+    private var invalidCommandsBeforePrompt = DEFAULT_INVALID_COMMANDS_BEFORE_PROMPT
+    // while true the continue/stop prompt is shown and only "continue"/"resume" voice is accepted
+    @Volatile
+    private var awaitingContinueConfirmation = false
+
     private val screenReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             when (intent?.action) {
@@ -301,19 +319,26 @@ class WakeService : Service() {
         voiceSessionActive.set(false)
         // a genuine end (timeout / "stop" / error) must not auto-resume when the screen comes on
         resumeOnScreenOn = false
+        awaitingContinueConfirmation = false
+        invalidCommandCount = 0
         handler.removeCallbacks(sessionTimeoutRunnable)
         handler.removeCallbacks(rearmListeningRunnable)
+        skillEvaluator.onSkillResult = null
+        skillEvaluator.suppressReopenMicrophone = false
         sttInputDevice.stopListening()
-        // hideListening() tears down both overlays but remembers the user's label on/off choice
+        // hideListening() tears down all overlays but remembers the user's label on/off choice
         VoiceAccessService.instance?.hideListening()
     }
 
     /** Pauses an active session when the screen turns off, remembering to resume on screen-on. */
     private fun pauseVoiceSessionForScreenOff() {
-        if (!voiceSessionActive.getAndSet(false)) return
+        // also pause if we are currently asking the continue/stop question
+        if (!voiceSessionActive.getAndSet(false) && !awaitingContinueConfirmation) return
         resumeOnScreenOn = true
+        awaitingContinueConfirmation = false
         handler.removeCallbacks(sessionTimeoutRunnable)
         handler.removeCallbacks(rearmListeningRunnable)
+        skillEvaluator.suppressReopenMicrophone = false
         sttInputDevice.stopListening()
         VoiceAccessService.instance?.hideListening()
     }
@@ -371,10 +396,17 @@ class WakeService : Service() {
         }
 
         voiceSessionActive.set(true)
+        invalidCommandCount = 0
+        awaitingContinueConfirmation = false
         // show the listening bar over the current app
         service.showListening()
         // the "stop" command ends the whole continuous session
         service.stopListeningCallback = { endVoiceSession() }
+        // count recognized-but-unmatched utterances (fallback misses) toward the continue prompt
+        skillEvaluator.onSkillResult = { matched -> handler.post { onSkillMatchResult(matched) } }
+        // we drive continuous listening ourselves; stop skills from reopening the mic with their
+        // own listener (which would hijack our onVoiceAccessInputEvent loop)
+        skillEvaluator.suppressReopenMicrophone = true
 
         // forward STT events to both the overlay (live transcript) and the skill evaluator
         sttInputDevice.tryLoad(::onVoiceAccessInputEvent)
@@ -391,23 +423,114 @@ class WakeService : Service() {
     private fun onVoiceAccessInputEvent(event: org.stypox.dicio.io.input.InputEvent) {
         Log.d(TAG, "VoiceAccess input event: ${event::class.simpleName}")
         val service = VoiceAccessService.instance
+
+        // While the continue/stop prompt is up, only "continue"/"resume" voice is honored (plus the
+        // on-screen buttons). Everything else is ignored and not forwarded to the skill evaluator.
+        if (awaitingContinueConfirmation) {
+            handleConfirmationInputEvent(event, service)
+            return
+        }
+
         when (event) {
             is org.stypox.dicio.io.input.InputEvent.Partial ->
                 service?.updateTranscript(event.utterance, false)
             is org.stypox.dicio.io.input.InputEvent.Final -> {
                 service?.updateTranscript(event.utterances.firstOrNull()?.first.orEmpty(), true)
-                // a command was recognized: reset the inactivity timer and keep listening
+                // keep listening; whether this counts as valid is decided by onSkillMatchResult
+                // (a matched skill resets the counter, a fallback miss increments it)
                 scheduleSessionTimeout()
                 handler.postDelayed(rearmListeningRunnable, REARM_DELAY_MILLIS)
             }
-            org.stypox.dicio.io.input.InputEvent.None ->
-                // silence with no command: keep listening; the inactivity timer still ticks
-                handler.postDelayed(rearmListeningRunnable, REARM_DELAY_MILLIS)
-            is org.stypox.dicio.io.input.InputEvent.Error ->
-                endVoiceSession()
+            org.stypox.dicio.io.input.InputEvent.None -> {
+                // nothing understood: count it and either keep listening or ask to continue
+                if (!registerInvalidCommand(service)) {
+                    handler.postDelayed(rearmListeningRunnable, REARM_DELAY_MILLIS)
+                }
+            }
+            is org.stypox.dicio.io.input.InputEvent.Error -> {
+                // recognition error: treat like an invalid command instead of aborting the session
+                if (!registerInvalidCommand(service)) {
+                    handler.postDelayed(rearmListeningRunnable, REARM_DELAY_MILLIS)
+                }
+            }
         }
         // run the command (back, open, labels, click number, stop, …)
         skillEvaluator.processInputEvent(event)
+    }
+
+    /** Result of evaluating a recognized utterance: matched a skill, or fell through to fallback. */
+    private fun onSkillMatchResult(matched: Boolean) {
+        if (awaitingContinueConfirmation || !voiceSessionActive.get()) return
+        if (matched) {
+            invalidCommandCount = 0
+        } else {
+            // recognized speech but no command matched it: counts toward the continue prompt
+            registerInvalidCommand(VoiceAccessService.instance)
+        }
+    }
+
+    /**
+     * Counts an unrecognized result. Returns true if the continue/stop prompt was shown (so the
+     * caller should not re-arm normal listening).
+     */
+    private fun registerInvalidCommand(service: VoiceAccessService?): Boolean {
+        invalidCommandCount += 1
+        if (invalidCommandCount < invalidCommandsBeforePrompt) {
+            return false
+        }
+        enterContinueConfirmation(service)
+        return true
+    }
+
+    private fun enterContinueConfirmation(service: VoiceAccessService?) {
+        awaitingContinueConfirmation = true
+        // don't time out while waiting for the user's answer
+        handler.removeCallbacks(sessionTimeoutRunnable)
+        service?.showContinuePrompt(
+            onContinue = { handler.post { resumeFromContinueConfirmation() } },
+            onStop = { handler.post { endVoiceSession() } },
+        )
+        // keep listening so the user can say "continue" or "stop"
+        handler.removeCallbacks(rearmListeningRunnable)
+        handler.postDelayed(rearmListeningRunnable, REARM_DELAY_MILLIS)
+    }
+
+    private fun resumeFromContinueConfirmation() {
+        awaitingContinueConfirmation = false
+        invalidCommandCount = 0
+        VoiceAccessService.instance?.hideContinuePrompt()
+        VoiceAccessService.instance?.updateTranscript("", false)
+        scheduleSessionTimeout()
+        handler.postDelayed(rearmListeningRunnable, REARM_DELAY_MILLIS)
+    }
+
+    private fun handleConfirmationInputEvent(
+        event: org.stypox.dicio.io.input.InputEvent,
+        service: VoiceAccessService?,
+    ) {
+        when (event) {
+            is org.stypox.dicio.io.input.InputEvent.Partial ->
+                service?.updateTranscript(event.utterance, false)
+            is org.stypox.dicio.io.input.InputEvent.Final -> {
+                val said = event.utterances.joinToString(" ") { it.first }
+                service?.updateTranscript(event.utterances.firstOrNull()?.first.orEmpty(), true)
+                when {
+                    said.containsAnyWord(CONTINUE_WORDS) -> resumeFromContinueConfirmation()
+                    said.containsAnyWord(STOP_WORDS) -> endVoiceSession()
+                    // anything else is ignored; keep listening for an answer
+                    else -> handler.postDelayed(rearmListeningRunnable, REARM_DELAY_MILLIS)
+                }
+            }
+            org.stypox.dicio.io.input.InputEvent.None,
+            is org.stypox.dicio.io.input.InputEvent.Error ->
+                // keep listening so the user can answer by voice
+                handler.postDelayed(rearmListeningRunnable, REARM_DELAY_MILLIS)
+        }
+    }
+
+    private fun String.containsAnyWord(words: List<String>): Boolean {
+        val tokens = lowercase().split(' ', ',', '.', '!', '?').filter { it.isNotBlank() }
+        return words.any { it in tokens }
     }
 
     private fun onWakeWordDetectedOpenActivity() {
@@ -553,6 +676,11 @@ class WakeService : Service() {
         private const val WAKE_WORD_BACKOFF_MILLIS = 4000L
         private const val VOICE_SESSION_TIMEOUT_MILLIS = 30000L // 30 s inactivity ends session
         private const val SCREEN_WAKE_MILLIS = 3000L // how long to force the screen on when waking
+        // default unrecognized results before asking to continue (when the setting is unset)
+        const val DEFAULT_INVALID_COMMANDS_BEFORE_PROMPT = 3
+        // words that dismiss the continue/stop prompt by voice
+        private val CONTINUE_WORDS = listOf("continue", "resume", "yes", "yeah", "keep")
+        private val STOP_WORDS = listOf("stop", "cancel", "no", "quit", "exit", "done")
         private const val REARM_DELAY_MILLIS = 350L // brief gap before listening for next command
         private const val ACTION_STOP_WAKE_SERVICE =
             "org.stypox.dicio.io.wake.WakeService.ACTION_STOP"

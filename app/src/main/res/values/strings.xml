@@ -85,6 +85,8 @@
     <string name="pref_listening_duration_summary">How long listening stays active after the wake word</string>
     <string name="pref_listening_duration_timeout_30s">Stop after 30 seconds</string>
     <string name="pref_listening_duration_until_screen_off">Until screen turns off</string>
+    <string name="pref_invalid_commands_before_prompt_title">Attempts before asking to continue</string>
+    <string name="pref_invalid_commands_before_prompt_description">After %1$d unrecognized commands</string>
     <string name="pref_appearance">Appearance</string>
     <string name="pref_skills_title">Skills</string>
     <string name="pref_skills_summary">Enable/disable skills and tune their behavior</string>
@@ -200,6 +202,9 @@
     <string name="voice_access_service_description">Lets you control your phone hands-free: show numbered labels on tappable items and select them by voice, go back, and open apps. Triggered by the wake word.</string>
     <string name="voice_access_service_summary">Hands-free phone control via voice commands</string>
     <string name="voice_access_listening">Listening…</string>
+    <string name="voice_access_continue_prompt">Continue using Voice Access?</string>
+    <string name="voice_access_continue">Continue</string>
+    <string name="voice_access_stop">Stop</string>
     <string name="voice_access_not_enabled">Enable Dicio Voice Access in Accessibility settings to use voice control</string>
     <string name="skill_name_back">Go back</string>
     <string name="skill_sentence_example_back">Go back</string>

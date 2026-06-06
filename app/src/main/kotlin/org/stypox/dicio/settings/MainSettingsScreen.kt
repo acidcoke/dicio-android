@@ -42,6 +42,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import org.stypox.dicio.R
 import org.stypox.dicio.io.input.SttInputDevice
 import org.stypox.dicio.io.wake.mww.MicroWakeWordConfig
+import org.stypox.dicio.io.wake.WakeService
 import org.stypox.dicio.skills.scroll.ScrollInfo
 import org.stypox.dicio.voiceaccess.LabelStyle
 import org.stypox.dicio.settings.datastore.InputDevice
@@ -299,6 +300,13 @@ private fun MainSettingsScreen(
                     else -> ListeningDuration.LISTENING_DURATION_TIMEOUT_30S
                 },
                 viewModel::setListeningDuration,
+            )
+        }
+        item {
+            invalidCommandsBeforePrompt().Render(
+                settings.invalidCommandsBeforePrompt.takeIf { it != 0 }
+                    ?: WakeService.DEFAULT_INVALID_COMMANDS_BEFORE_PROMPT,
+                viewModel::setInvalidCommandsBeforePrompt,
             )
         }
         item {

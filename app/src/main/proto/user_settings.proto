@@ -33,4 +33,6 @@ message UserSettings {
     int32 label_contrast = 15;  // chip/text contrast, 10..100 (%)
     LabelTheme label_theme = 16; // light or dark chip colors
     ListeningDuration listening_duration = 17; // how long a session stays active
+    // unrecognized commands before the continue/stop prompt; 0 means unset → default
+    int32 invalid_commands_before_prompt = 18;
 }

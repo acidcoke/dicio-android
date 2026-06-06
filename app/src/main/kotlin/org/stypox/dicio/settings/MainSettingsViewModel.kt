@@ -187,4 +187,6 @@ class MainSettingsViewModel @Inject constructor(
         updateData { it.setLabelTheme(value) }
     fun setListeningDuration(value: ListeningDuration) =
         updateData { it.setListeningDuration(value) }
+    fun setInvalidCommandsBeforePrompt(value: Int) =
+        updateData { it.setInvalidCommandsBeforePrompt(value) }
 }

@@ -7,4 +7,7 @@
     <!-- Listening bar uses dicio's own primary green instead of Voice Access blue -->
     <color name="va_listening_bg">#406836</color>
     <color name="va_listening_text">#FFFFFFFF</color>
+    <!-- Continue/stop confirmation overlay -->
+    <color name="va_confirmation_bg">#202124</color>
+    <color name="va_confirmation_text">#FFFFFFFF</color>
 </resources>

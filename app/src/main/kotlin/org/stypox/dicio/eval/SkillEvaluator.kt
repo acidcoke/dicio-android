@@ -31,6 +31,20 @@ interface SkillEvaluator {
 
     var permissionRequester: suspend (List<Permission>) -> Boolean
 
+    /**
+     * Invoked after a recognized utterance is evaluated, with whether an actual skill matched it
+     * (true) or it fell through to the fallback skill (false). Used by Voice Access to count
+     * unrecognized commands. May be called on a background thread.
+     */
+    var onSkillResult: ((matched: Boolean) -> Unit)?
+
+    /**
+     * When true, skills' `reopenMicrophone` is ignored so the evaluator does not restart STT itself.
+     * Voice Access sets this because it drives continuous listening with its own listener; otherwise
+     * the evaluator would hijack the microphone with [processInputEvent].
+     */
+    var suppressReopenMicrophone: Boolean
+
     fun processInputEvent(event: InputEvent)
 }
 
@@ -55,6 +69,10 @@ class SkillEvaluatorImpl(
 
     // must be kept up to date even when the activity is recreated, for this reason it is `var`
     override var permissionRequester: suspend (List<Permission>) -> Boolean = { false }
+
+    override var onSkillResult: ((matched: Boolean) -> Unit)? = null
+
+    override var suppressReopenMicrophone: Boolean = false
 
     override fun processInputEvent(event: InputEvent) {
         scope.launch {
@@ -96,14 +114,15 @@ class SkillEvaluatorImpl(
     }
 
     private suspend fun evaluateMatchingSkill(utterances: List<String>) {
-        val (chosenInput, chosenSkill) = try {
+        val best = try {
             utterances.firstNotNullOfOrNull { input: String ->
                 skillContext.standardMatchHelper = MatchHelper(skillContext.parserFormatter, input)
                 skillRanker.getBest(skillContext, input)?.let { skillWithResult ->
                     Pair(input, skillWithResult)
                 }
-            } ?: Pair(utterances[0], skillRanker.getFallbackSkill(skillContext, utterances[0]))
+            }
         } catch (throwable: Throwable) {
+            onSkillResult?.invoke(false)
             addErrorInteractionFromPending(throwable)
             return
         } finally {
@@ -112,6 +131,10 @@ class SkillEvaluatorImpl(
             // significant since the purpose of MatchHelper is to cache information about the input)
             skillContext.standardMatchHelper = null
         }
+        // notify whether an actual skill matched, or we are about to use the fallback skill
+        onSkillResult?.invoke(best != null)
+        val (chosenInput, chosenSkill) =
+            best ?: Pair(utterances[0], skillRanker.getFallbackSkill(skillContext, utterances[0]))
         val skillInfo = chosenSkill.skill.correspondingSkillInfo
 
         _state.value = _state.value.copy(
@@ -167,7 +190,7 @@ class SkillEvaluatorImpl(
                 }
             }
 
-            if (interactionPlan.reopenMicrophone) {
+            if (interactionPlan.reopenMicrophone && !suppressReopenMicrophone) {
                 skillContext.speechOutputDevice.runWhenFinishedSpeaking {
                     sttInputDevice.tryLoad(this::processInputEvent)
                 }

@@ -40,6 +40,7 @@ class VoiceAccessService : AccessibilityService() {
 
     private var labelOverlay: LabelOverlayView? = null
     private var listeningBar: ListeningBarView? = null
+    private var confirmationOverlay: ConfirmationOverlayView? = null
 
     // whether the user wants labels shown; remembered across listening sessions
     @Volatile
@@ -112,6 +113,7 @@ class VoiceAccessService : AccessibilityService() {
     private fun cleanup() {
         handler.removeCallbacksAndMessages(null)
         removeListeningBar()
+        removeConfirmationOverlay()
         removeLabelOverlay()
         stopListeningCallback = null
     }
@@ -353,9 +355,46 @@ class VoiceAccessService : AccessibilityService() {
         sessionActive = false
         stopLabelPolling()
         removeListeningBar()
+        removeConfirmationOverlay()
         // pause the overlay only; labelsVisible (the user's intent) is intentionally kept
         removeLabelOverlay()
     }
+
+    // ---------------------------------------------------------------- continue/stop confirmation
+
+    /**
+     * Shows a touchable overlay asking whether to keep using Voice Access, with Continue/Stop
+     * buttons. Used after several commands could not be understood, instead of silently aborting.
+     */
+    fun showContinuePrompt(onContinue: () -> Unit, onStop: () -> Unit) = runOnMain {
+        val wm = windowManager ?: return@runOnMain
+        if (confirmationOverlay != null) return@runOnMain
+        val view = ConfirmationOverlayView(this, onContinue, onStop)
+        try {
+            wm.addView(view, confirmationParams())
+            confirmationOverlay = view
+        } catch (t: Throwable) {
+            Log.e(TAG, "Failed to add confirmation overlay", t)
+        }
+        // keep the listening bar on top of the prompt's dim scrim so it stays visible
+        bringListeningBarToFront()
+    }
+
+    /** Re-adds the listening bar last so it draws in front of other Voice Access overlays. */
+    private fun bringListeningBarToFront() {
+        val wm = windowManager ?: return
+        val bar = listeningBar ?: return
+        try {
+            wm.removeViewImmediate(bar)
+            wm.addView(bar, listeningBarParams())
+        } catch (t: Throwable) {
+            Log.w(TAG, "Failed to bring listening bar to front", t)
+        }
+    }
+
+    fun hideContinuePrompt() = runOnMain { removeConfirmationOverlay() }
+
+    fun isContinuePromptShowing(): Boolean = confirmationOverlay != null
 
     /** Ends the whole session: stops STT and tears down the overlays (label state is remembered). */
     fun stopVoiceSession() {
@@ -385,6 +424,30 @@ class VoiceAccessService : AccessibilityService() {
             }
         }
         listeningBar = null
+    }
+
+    private fun removeConfirmationOverlay() {
+        confirmationOverlay?.let { view ->
+            try {
+                windowManager?.removeView(view)
+            } catch (t: Throwable) {
+                Log.w(TAG, "Failed to remove confirmation overlay", t)
+            }
+        }
+        confirmationOverlay = null
+    }
+
+    private fun confirmationParams(): WindowManager.LayoutParams {
+        return WindowManager.LayoutParams(
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
+            overlayWindowType(),
+            // touchable (no FLAG_NOT_TOUCHABLE) so the buttons work; not focusable so it doesn't
+            // steal key/IME focus from the underlying app
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            PixelFormat.TRANSLUCENT,
+        )
     }
 
     private fun labelOverlayParams(): WindowManager.LayoutParams {
