@@ -1,12 +1,4 @@
 continue:
-  - continue|resume
-  - carry on
-  - keep going
-  - go on
-  - "yes"
-
+  - continue
 stop:
-  - stop|cancel|exit|quit|dismiss
-  - "no"
-  - done
-  - never mind
+  - stop
