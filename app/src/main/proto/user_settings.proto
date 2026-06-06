@@ -9,6 +9,7 @@ import "stt_play_sound.proto";
 import "number_selection_mode.proto";
 import "scroll_amount.proto";
 import "label_theme.proto";
+import "listening_duration.proto";
 
 option java_package = "org.stypox.dicio.settings.datastore";
 option java_multiple_files = true;
@@ -31,4 +32,5 @@ message UserSettings {
     int32 label_opacity = 14;   // chip opacity, 20..100 (%)
     int32 label_contrast = 15;  // chip/text contrast, 10..100 (%)
     LabelTheme label_theme = 16; // light or dark chip colors
+    ListeningDuration listening_duration = 17; // how long a session stays active
 }

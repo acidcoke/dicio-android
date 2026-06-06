@@ -46,6 +46,7 @@ import org.stypox.dicio.skills.scroll.ScrollInfo
 import org.stypox.dicio.voiceaccess.LabelStyle
 import org.stypox.dicio.settings.datastore.InputDevice
 import org.stypox.dicio.settings.datastore.LabelTheme
+import org.stypox.dicio.settings.datastore.ListeningDuration
 import org.stypox.dicio.settings.datastore.Language
 import org.stypox.dicio.settings.datastore.NumberSelectionMode
 import org.stypox.dicio.settings.datastore.SpeechOutputDevice
@@ -288,6 +289,16 @@ private fun MainSettingsScreen(
                 modifier = Modifier.clickable {
                     context.startActivity(VoiceAccessService.accessibilitySettingsIntent())
                 },
+            )
+        }
+        item {
+            listeningDuration().Render(
+                when (val d = settings.listeningDuration) {
+                    ListeningDuration.LISTENING_DURATION_TIMEOUT_30S,
+                    ListeningDuration.LISTENING_DURATION_UNTIL_SCREEN_OFF -> d
+                    else -> ListeningDuration.LISTENING_DURATION_TIMEOUT_30S
+                },
+                viewModel::setListeningDuration,
             )
         }
         item {

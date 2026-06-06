@@ -6,9 +6,11 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+import android.content.IntentFilter
 import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.media.AudioFormat
 import android.media.AudioRecord
@@ -17,6 +19,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.PowerManager
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
@@ -28,7 +31,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import androidx.datastore.core.DataStore
+import org.stypox.dicio.settings.datastore.ListeningDuration
+import org.stypox.dicio.settings.datastore.UserSettings
 import org.stypox.dicio.MainActivity
 import org.stypox.dicio.MainActivity.Companion.ACTION_WAKE_WORD
 import org.stypox.dicio.R
@@ -55,6 +62,8 @@ class WakeService : Service() {
     lateinit var sttInputDevice: SttInputDeviceWrapper
     @Inject
     lateinit var wakeDevice: WakeDeviceWrapper
+    @Inject
+    lateinit var dataStore: DataStore<UserSettings>
 
     private val handler = Handler(Looper.getMainLooper())
     private val releaseSttResourcesRunnable = Runnable {
@@ -83,6 +92,19 @@ class WakeService : Service() {
                 createForegroundNotification(isHeyDicio)
             }
         }
+
+        scope.launch {
+            dataStore.data
+                .map { it.listeningDuration }
+                .collect { listeningDuration = normalizeListeningDuration(it) }
+        }
+
+        // Screen on/off cannot be declared in the manifest, so register dynamically. Used to pause
+        // the Voice Access listening session while the screen is off and resume it when it comes on.
+        registerReceiver(screenReceiver, IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_SCREEN_ON)
+        })
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -131,6 +153,11 @@ class WakeService : Service() {
 
     override fun onDestroy() {
         listening.set(false)
+        try {
+            unregisterReceiver(screenReceiver)
+        } catch (_: IllegalArgumentException) {
+            // not registered; ignore
+        }
         job.cancel()
         wakeDevice.reinitializeToReleaseResources()
         super.onDestroy()
@@ -225,6 +252,23 @@ class WakeService : Service() {
     // true while a hands-free Voice Access session is active (keeps listening across commands)
     private val voiceSessionActive = AtomicBoolean(false)
 
+    // the configured session duration mode, kept in sync with the settings data store
+    @Volatile
+    private var listeningDuration = ListeningDuration.LISTENING_DURATION_TIMEOUT_30S
+
+    // set when a session is paused because the screen turned off, so it resumes on screen-on
+    @Volatile
+    private var resumeOnScreenOn = false
+
+    private val screenReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                Intent.ACTION_SCREEN_OFF -> pauseVoiceSessionForScreenOff()
+                Intent.ACTION_SCREEN_ON -> resumeVoiceSessionForScreenOn()
+            }
+        }
+    }
+
     private val sessionTimeoutRunnable = Runnable {
         // 30 s without a recognized command: end the Voice Access listening session
         endVoiceSession()
@@ -238,13 +282,68 @@ class WakeService : Service() {
         }
     }
 
+    /** Treats UNSET / unrecognized as the default (30 s timeout). */
+    private fun normalizeListeningDuration(d: ListeningDuration): ListeningDuration = when (d) {
+        ListeningDuration.LISTENING_DURATION_TIMEOUT_30S,
+        ListeningDuration.LISTENING_DURATION_UNTIL_SCREEN_OFF -> d
+        else -> ListeningDuration.LISTENING_DURATION_TIMEOUT_30S
+    }
+
+    /** Arms the inactivity timeout, but only in the 30 s mode; until-screen-off mode never times out. */
+    private fun scheduleSessionTimeout() {
+        handler.removeCallbacks(sessionTimeoutRunnable)
+        if (listeningDuration == ListeningDuration.LISTENING_DURATION_TIMEOUT_30S) {
+            handler.postDelayed(sessionTimeoutRunnable, VOICE_SESSION_TIMEOUT_MILLIS)
+        }
+    }
+
     private fun endVoiceSession() {
         voiceSessionActive.set(false)
+        // a genuine end (timeout / "stop" / error) must not auto-resume when the screen comes on
+        resumeOnScreenOn = false
         handler.removeCallbacks(sessionTimeoutRunnable)
         handler.removeCallbacks(rearmListeningRunnable)
         sttInputDevice.stopListening()
         // hideListening() tears down both overlays but remembers the user's label on/off choice
         VoiceAccessService.instance?.hideListening()
+    }
+
+    /** Pauses an active session when the screen turns off, remembering to resume on screen-on. */
+    private fun pauseVoiceSessionForScreenOff() {
+        if (!voiceSessionActive.getAndSet(false)) return
+        resumeOnScreenOn = true
+        handler.removeCallbacks(sessionTimeoutRunnable)
+        handler.removeCallbacks(rearmListeningRunnable)
+        sttInputDevice.stopListening()
+        VoiceAccessService.instance?.hideListening()
+    }
+
+    /**
+     * Briefly turns the screen on via a wake lock that auto-releases. The screen-bright wake-lock
+     * levels are deprecated but remain the practical way to wake the display from a background
+     * service; [PowerManager.ON_AFTER_RELEASE] keeps it on for the normal timeout afterwards.
+     */
+    @Suppress("DEPRECATION")
+    private fun turnScreenOn(powerManager: PowerManager) {
+        try {
+            val wakeLock = powerManager.newWakeLock(
+                PowerManager.SCREEN_BRIGHT_WAKE_LOCK or
+                    PowerManager.ACQUIRE_CAUSES_WAKEUP or
+                    PowerManager.ON_AFTER_RELEASE,
+                "$TAG:wakeOnWakeWord",
+            )
+            wakeLock.acquire(SCREEN_WAKE_MILLIS)
+        } catch (t: Throwable) {
+            Log.w(TAG, "Could not acquire wake lock to turn the screen on", t)
+        }
+    }
+
+    /** Resumes a session that was paused by the screen turning off. */
+    private fun resumeVoiceSessionForScreenOn() {
+        if (!resumeOnScreenOn) return
+        resumeOnScreenOn = false
+        val service = VoiceAccessService.instance ?: return
+        onWakeWordDetectedVoiceAccess(service)
     }
 
     private fun onWakeWordDetected() {
@@ -264,6 +363,13 @@ class WakeService : Service() {
     }
 
     private fun onWakeWordDetectedVoiceAccess(service: VoiceAccessService) {
+        // if the screen is off, wake it so the user can see the listening UI and labels and so the
+        // accessibility overlays can be drawn; then proceed to start the session
+        val powerManager = getSystemService(this, PowerManager::class.java)
+        if (powerManager?.isInteractive == false) {
+            turnScreenOn(powerManager)
+        }
+
         voiceSessionActive.set(true)
         // show the listening bar over the current app
         service.showListening()
@@ -273,10 +379,9 @@ class WakeService : Service() {
         // forward STT events to both the overlay (live transcript) and the skill evaluator
         sttInputDevice.tryLoad(::onVoiceAccessInputEvent)
 
-        // auto-end the session after 30 seconds without a recognized command
-        handler.removeCallbacks(sessionTimeoutRunnable)
+        // auto-end the session after the inactivity timeout (30 s mode only)
         handler.removeCallbacks(rearmListeningRunnable)
-        handler.postDelayed(sessionTimeoutRunnable, VOICE_SESSION_TIMEOUT_MILLIS)
+        scheduleSessionTimeout()
 
         // unload the STT after a longer while if nothing keeps it alive
         handler.removeCallbacks(releaseSttResourcesRunnable)
@@ -292,8 +397,7 @@ class WakeService : Service() {
             is org.stypox.dicio.io.input.InputEvent.Final -> {
                 service?.updateTranscript(event.utterances.firstOrNull()?.first.orEmpty(), true)
                 // a command was recognized: reset the inactivity timer and keep listening
-                handler.removeCallbacks(sessionTimeoutRunnable)
-                handler.postDelayed(sessionTimeoutRunnable, VOICE_SESSION_TIMEOUT_MILLIS)
+                scheduleSessionTimeout()
                 handler.postDelayed(rearmListeningRunnable, REARM_DELAY_MILLIS)
             }
             org.stypox.dicio.io.input.InputEvent.None ->
@@ -448,6 +552,7 @@ class WakeService : Service() {
         private const val TRIGGERED_NOTIFICATION_ID = 601398647
         private const val WAKE_WORD_BACKOFF_MILLIS = 4000L
         private const val VOICE_SESSION_TIMEOUT_MILLIS = 30000L // 30 s inactivity ends session
+        private const val SCREEN_WAKE_MILLIS = 3000L // how long to force the screen on when waking
         private const val REARM_DELAY_MILLIS = 350L // brief gap before listening for next command
         private const val ACTION_STOP_WAKE_SERVICE =
             "org.stypox.dicio.io.wake.WakeService.ACTION_STOP"

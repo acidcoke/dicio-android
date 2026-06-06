@@ -81,6 +81,10 @@
     <string name="pref_label_theme_summary">Color scheme of the numbered labels</string>
     <string name="pref_label_theme_dark">Dark (light text)</string>
     <string name="pref_label_theme_light">Light (dark text)</string>
+    <string name="pref_listening_duration_title">Listening duration</string>
+    <string name="pref_listening_duration_summary">How long listening stays active after the wake word</string>
+    <string name="pref_listening_duration_timeout_30s">Stop after 30 seconds</string>
+    <string name="pref_listening_duration_until_screen_off">Until screen turns off</string>
     <string name="pref_appearance">Appearance</string>
     <string name="pref_skills_title">Skills</string>
     <string name="pref_skills_summary">Enable/disable skills and tune their behavior</string>

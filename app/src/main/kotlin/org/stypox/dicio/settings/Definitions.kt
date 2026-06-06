@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.SpeakerPhone
 import androidx.compose.material.icons.filled.SwipeVertical
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
@@ -33,6 +34,7 @@ import org.stypox.dicio.io.wake.mww.MicroWakeWordConfig
 import org.stypox.dicio.settings.datastore.InputDevice
 import org.stypox.dicio.settings.datastore.Language
 import org.stypox.dicio.settings.datastore.LabelTheme
+import org.stypox.dicio.settings.datastore.ListeningDuration
 import org.stypox.dicio.settings.datastore.NumberSelectionMode
 import org.stypox.dicio.settings.datastore.ScrollAmount
 import org.stypox.dicio.settings.datastore.SpeechOutputDevice
@@ -286,6 +288,23 @@ fun labelContrast() = IntSetting(
     description = @Composable { stringResource(R.string.pref_label_contrast_description, it) },
     minimum = 10,
     maximum = 100,
+)
+
+@Composable
+fun listeningDuration() = ListSetting(
+    title = stringResource(R.string.pref_listening_duration_title),
+    icon = Icons.Default.Timer,
+    description = stringResource(R.string.pref_listening_duration_summary),
+    possibleValues = listOf(
+        ListSetting.Value(
+            value = ListeningDuration.LISTENING_DURATION_TIMEOUT_30S,
+            name = stringResource(R.string.pref_listening_duration_timeout_30s),
+        ),
+        ListSetting.Value(
+            value = ListeningDuration.LISTENING_DURATION_UNTIL_SCREEN_OFF,
+            name = stringResource(R.string.pref_listening_duration_until_screen_off),
+        ),
+    ),
 )
 
 @Composable

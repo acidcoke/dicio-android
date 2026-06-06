@@ -23,6 +23,7 @@ import org.stypox.dicio.io.wake.oww.OpenWakeWordDevice
 import org.stypox.dicio.settings.datastore.InputDevice
 import org.stypox.dicio.settings.datastore.Language
 import org.stypox.dicio.settings.datastore.LabelTheme
+import org.stypox.dicio.settings.datastore.ListeningDuration
 import org.stypox.dicio.settings.datastore.NumberSelectionMode
 import org.stypox.dicio.settings.datastore.ScrollAmount
 import org.stypox.dicio.settings.datastore.SpeechOutputDevice
@@ -184,4 +185,6 @@ class MainSettingsViewModel @Inject constructor(
         updateData { it.setLabelContrast(value) }
     fun setLabelTheme(value: LabelTheme) =
         updateData { it.setLabelTheme(value) }
+    fun setListeningDuration(value: ListeningDuration) =
+        updateData { it.setListeningDuration(value) }
 }

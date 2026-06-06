@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+option java_package = "org.stypox.dicio.settings.datastore";
+option java_multiple_files = true;
+
+// How long a Voice Access listening session stays active after the wake word.
+enum ListeningDuration {
+  // Unset is treated as the default, which is TIMEOUT_30S.
+  LISTENING_DURATION_UNSET = 0;
+  // Stop listening after 30 seconds of inactivity. This is the default.
+  LISTENING_DURATION_TIMEOUT_30S = 1;
+  // Keep listening until the screen turns off.
+  LISTENING_DURATION_UNTIL_SCREEN_OFF = 2;
+}
