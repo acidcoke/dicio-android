@@ -1,0 +1,29 @@
+scroll_up:
+  - scroll<e?>|geh<e?>|fahr<e?> (nach oben)|hoch|rauf
+  - (nach oben)|hoch|rauf (scrollen|gehen|fahren)
+
+scroll_down:
+  - scroll<e?>|geh<e?>|fahr<e?> (nach unten)|runter|herunter
+  - (nach unten)|runter|herunter (scrollen|gehen|fahren)?
+
+scroll_left:
+  - scroll<e?>|geh<e?>|fahr<e?> nach links
+  - nach links (scrollen|gehen|fahren)?
+  - bagbord
+
+scroll_right:
+  - scroll<e?>|geh<e?>|fahr<e?> nach rechts
+  - nach rechts (scrollen|gehen|fahren)?
+  - steuerbord
+
+swipe_up:
+  - wisch<e?>|zieh<e?> (nach oben)|hoch|rauf
+
+swipe_down:
+  - wisch<e?>|zieh<e?> (nach unten)|runter|herunter
+
+swipe_left:
+  - wisch<e?>|zieh<e?> nach links
+
+swipe_right:
+  - wisch<e?>|zieh<e?> nach rechts
