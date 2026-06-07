@@ -230,6 +230,14 @@
     <string name="skill_scroll_scrolled">Scrolled %1$s</string>
     <string name="skill_scroll_swiped">Swiped %1$s</string>
     <string name="skill_scroll_service_disabled">Voice Access is not enabled</string>
+    <string name="skill_name_notifications">Show notifications</string>
+    <string name="skill_sentence_example_notifications">Show notifications</string>
+    <string name="skill_notifications_shown">Opened notifications</string>
+    <string name="skill_notifications_service_disabled">Voice Access is not enabled</string>
+    <string name="skill_name_quick_settings">Show quick settings</string>
+    <string name="skill_sentence_example_quick_settings">Show quick settings</string>
+    <string name="skill_quick_settings_shown">Opened quick settings</string>
+    <string name="skill_quick_settings_service_disabled">Voice Access is not enabled</string>
     <string name="direction_up">up</string>
     <string name="direction_down">down</string>
     <string name="direction_left">left</string>

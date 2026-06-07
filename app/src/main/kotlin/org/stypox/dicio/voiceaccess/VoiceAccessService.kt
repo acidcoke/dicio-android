@@ -124,6 +124,10 @@ class VoiceAccessService : AccessibilityService() {
 
     fun goHome() = runOnMain { performGlobalAction(GLOBAL_ACTION_HOME) }
 
+    fun openNotifications() = runOnMain { performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS) }
+
+    fun openQuickSettings() = runOnMain { performGlobalAction(GLOBAL_ACTION_QUICK_SETTINGS) }
+
     // ---------------------------------------------------------------- scrolling & swiping
 
     /**

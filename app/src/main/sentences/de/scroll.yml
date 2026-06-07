@@ -17,13 +17,13 @@ scroll_right:
   - steuerbord
 
 swipe_up:
-  - wisch<e?>|zieh<e?> (nach oben)|hoch|rauf
+  - wisch<e?>|zieh<e?>|sie (nach oben)|hoch|rauf
 
 swipe_down:
-  - wisch<e?>|zieh<e?> (nach unten)|runter|herunter
+  - wi>sch<e?>|zieh<e?>|sie (nach unten)|runter|herunter
 
 swipe_left:
-  - wisch<e?>|zieh<e?> nach links
+  - wisch<e?>|zieh<e?>|sie nach links
 
 swipe_right:
-  - wisch<e?>|zieh<e?> nach rechts
+  - wisch<e?>|zieh<e?>|sie nach rechts

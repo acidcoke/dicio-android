@@ -320,6 +320,14 @@
     <string name="skill_sentence_example_stop_listening">Stopp</string>
     <string name="skill_name_scroll">Scrollen und wischen</string>
     <string name="skill_sentence_example_scroll">Scroll runter</string>
+    <string name="skill_name_notifications">Benachrichtigungen anzeigen</string>
+    <string name="skill_sentence_example_notifications">Benachrichtigungen anzeigen</string>
+    <string name="skill_notifications_shown">Benachrichtigungen geöffnet</string>
+    <string name="skill_notifications_service_disabled">Voice Access ist nicht aktiviert</string>
+    <string name="skill_name_quick_settings">Schnelleinstellungen anzeigen</string>
+    <string name="skill_sentence_example_quick_settings">Schnelleinstellungen anzeigen</string>
+    <string name="skill_quick_settings_shown">Schnelleinstellungen geöffnet</string>
+    <string name="skill_quick_settings_service_disabled">Voice Access ist nicht aktiviert</string>
     <string name="direction_up">oben</string>
     <string name="direction_down">unten</string>
     <string name="direction_left">links</string>

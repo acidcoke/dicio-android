@@ -93,6 +93,16 @@ skills:
       - id: continue
       - id: stop
 
+  - id: notifications
+    specificity: high
+    sentences:
+      - id: show
+
+  - id: quick_settings
+    specificity: high
+    sentences:
+      - id: show
+
   - id: scroll
     specificity: high
     sentences:
