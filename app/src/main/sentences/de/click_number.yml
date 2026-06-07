@@ -1,5 +1,5 @@
 explicit:
-  - tipp<e?>|klick<e?>|dr<ü|ue>ck<e?>|w<ä|ae>hl<e?>|nimm|nummer|element .number.
+  - tipp<e?>|klick<e?>|dr<ü|ue>ck<e?>|w<ä|ae>hl<e?>|nummer .number.
 
 bare:
   - .number.

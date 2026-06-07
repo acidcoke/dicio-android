@@ -55,7 +55,16 @@ class ClickNumberSkill(
 
         // otherwise parse spelled-out numbers like "five" via the dicio numbers library
         val parsed = ctx.parserFormatter?.extractNumber(trimmed)?.parseMixedWithText()
-        val number = parsed?.firstOrNull { it is Number } as? Number ?: return null
-        return if (number.isDecimal) number.decimalValue().toInt() else number.integerValue().toInt()
+        val number = parsed?.firstOrNull { it is Number } as? Number
+        if (number != null) {
+            return if (number.isDecimal) number.decimalValue().toInt()
+            else number.integerValue().toInt()
+        }
+
+        // dicio-numbers has no German parser, so fall back to a hand-rolled one for German
+        if (ctx.sentencesLanguage == "de") {
+            GermanNumberParser.parse(trimmed)?.let { return it }
+        }
+        return null
     }
 }
