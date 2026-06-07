@@ -6,4 +6,4 @@ show:
 hide:
   - versteck<e?>|deaktivier<e?>|(blende aus) die? nummern|labels|etiketten
   - blend<e?> (die)? nummern|labels|etiketten aus
-  - nummer<n?>|label<s?>|etikett<en>? ausblenden|verstecken|deaktivieren
+  - nummer<n?>|label<s?>|etikett<en?> ausblenden|verstecken|deaktivieren
