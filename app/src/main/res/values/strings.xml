@@ -238,6 +238,13 @@
     <string name="skill_sentence_example_quick_settings">Show quick settings</string>
     <string name="skill_quick_settings_shown">Opened quick settings</string>
     <string name="skill_quick_settings_service_disabled">Voice Access is not enabled</string>
+    <string name="skill_name_pin_key">PIN keypad</string>
+    <string name="skill_sentence_example_pin_key">Charlie</string>
+    <string name="va_pin_delete">delete</string>
+    <string name="va_pin_enter">enter</string>
+    <string name="skill_pin_key_pressed">Pressed</string>
+    <string name="skill_pin_key_no_key">That key isn\'t here</string>
+    <string name="skill_pin_key_service_disabled">Voice Access is not enabled</string>
     <string name="direction_up">up</string>
     <string name="direction_down">down</string>
     <string name="direction_left">left</string>

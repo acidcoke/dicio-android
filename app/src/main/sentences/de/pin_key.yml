@@ -1,0 +1,26 @@
+slot_a:
+  - tipp<e?>|dr<ü|ue>ck<e?>|w<ä|ae>hl<e?>? anton
+slot_b:
+  - tipp<e?>|dr<ü|ue>ck<e?>|w<ä|ae>hl<e?>? berta
+slot_c:
+  - tipp<e?>|dr<ü|ue>ck<e?>|w<ä|ae>hl<e?>? c<ä|ae>sar
+slot_d:
+  - tipp<e?>|dr<ü|ue>ck<e?>|w<ä|ae>hl<e?>? dora
+slot_e:
+  - tipp<e?>|dr<ü|ue>ck<e?>|w<ä|ae>hl<e?>? emil
+slot_f:
+  - tipp<e?>|dr<ü|ue>ck<e?>|w<ä|ae>hl<e?>? friedrich
+slot_g:
+  - tipp<e?>|dr<ü|ue>ck<e?>|w<ä|ae>hl<e?>? gustav
+slot_h:
+  - tipp<e?>|dr<ü|ue>ck<e?>|w<ä|ae>hl<e?>? heinrich
+slot_i:
+  - tipp<e?>|dr<ü|ue>ck<e?>|w<ä|ae>hl<e?>? ida
+slot_j:
+  - tipp<e?>|dr<ü|ue>ck<e?>|w<ä|ae>hl<e?>? julius
+
+delete:
+  - l<ö|oe>schen|entfernen|r<ü|ue>cktaste
+
+enter:
+  - eingabe|best<ä|ae>tigen|fertig|ok|enter

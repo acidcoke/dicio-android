@@ -1,0 +1,26 @@
+slot_a:
+  - press|tap|type? alfa|alpha
+slot_b:
+  - press|tap|type? bravo
+slot_c:
+  - press|tap|type? charlie
+slot_d:
+  - press|tap|type? delta
+slot_e:
+  - press|tap|type? echo
+slot_f:
+  - press|tap|type? foxtrot
+slot_g:
+  - press|tap|type? golf
+slot_h:
+  - press|tap|type? hotel
+slot_i:
+  - press|tap|type? india
+slot_j:
+  - press|tap|type? juliett|juliet
+
+delete:
+  - delete|backspace|clear|remove
+
+enter:
+  - enter|confirm|submit|done|ok|accept

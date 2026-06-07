@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.stypox.dicio.R
 import org.stypox.dicio.settings.datastore.UserSettings
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -49,6 +50,22 @@ class VoiceAccessService : AccessibilityService() {
     @Volatile
     private var sessionActive = false
     private var labeledNodes: List<LabeledNode> = emptyList()
+
+    // ---- PIN mode: phonetic-word labels over a numeric PIN pad ----
+    // whether a numeric PIN pad is currently on screen (labels become phonetic words, not numbers)
+    @Volatile
+    private var pinModeActive = false
+    // the stable digit→slot shuffle, computed once each time a pad appears (slot = phonetic word index)
+    private var pinDigitToSlot: Map<Int, Int>? = null
+    // resolved per scan: slot index / delete / enter → the node to click
+    private val pinSlotToNode = HashMap<Int, LabeledNode>()
+    private var pinDeleteNode: LabeledNode? = null
+    private var pinEnterNode: LabeledNode? = null
+
+    // phonetic words (slot order) and delete/enter captions, localized; read lazily once
+    private val pinWords: Array<String> by lazy { resources.getStringArray(R.array.va_pin_words) }
+    private val pinDeleteLabel: String by lazy { getString(R.string.va_pin_delete) }
+    private val pinEnterLabel: String by lazy { getString(R.string.va_pin_enter) }
 
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
@@ -87,7 +104,9 @@ class VoiceAccessService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (!labelsVisible || !sessionActive || event == null) return
+        // refresh whenever a session is active: even with numbered labels off we must keep scanning
+        // so a PIN pad that appears mid-session is detected and switched to phonetic labels
+        if (!sessionActive || event == null) return
         when (event.eventType) {
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED,
             AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED,
@@ -181,17 +200,16 @@ class VoiceAccessService : AccessibilityService() {
 
     fun showLabels() = runOnMain {
         labelsVisible = true
-        if (sessionActive) {
-            refreshLabels()
-            startLabelPolling()
-        }
+        // polling runs for the whole session; just trigger an immediate refresh to draw them now
+        if (sessionActive) refreshLabels()
     }
 
     fun hideLabels() = runOnMain {
         labelsVisible = false
         labeledNodes = emptyList()
-        stopLabelPolling()
-        removeLabelOverlay()
+        // a PIN pad's phonetic labels stay even when numbered labels are hidden, so re-render
+        // instead of unconditionally tearing the overlay down
+        if (sessionActive) refreshLabels() else removeLabelOverlay()
     }
 
     fun toggleLabels() = runOnMain {
@@ -204,7 +222,7 @@ class VoiceAccessService : AccessibilityService() {
     private var lastRefreshUptimeMs = 0L
     private val scanInProgress = AtomicBoolean(false)
 
-    private val refreshRunnable = Runnable { if (labelsVisible && sessionActive) refreshLabels() }
+    private val refreshRunnable = Runnable { if (sessionActive) refreshLabels() }
 
     /**
      * Periodic safety-net rescan. Some surfaces (notably the dialpad / phone-number IME) change
@@ -213,7 +231,7 @@ class VoiceAccessService : AccessibilityService() {
      */
     private val pollRunnable = object : Runnable {
         override fun run() {
-            if (!labelsVisible || !sessionActive) return
+            if (!sessionActive) return
             refreshLabels()
             handler.postDelayed(this, LABEL_POLL_INTERVAL_MS)
         }
@@ -256,22 +274,88 @@ class VoiceAccessService : AccessibilityService() {
         }
         val windowList = windows
         scope.launch(Dispatchers.Default) {
-            val nodes = try {
+            val result = try {
                 ClickableNodeScanner.scan(windowList)
             } catch (t: Throwable) {
                 Log.e(TAG, "Failed to scan clickable nodes", t)
-                emptyList()
+                ScanResult(emptyList(), null)
             }
-            withContext(Dispatchers.Main) { renderLabels(nodes) }
+            withContext(Dispatchers.Main) { renderScan(result) }
             scanInProgress.set(false)
         }
     }
 
-    private fun renderLabels(nodes: List<LabeledNode>) {
+    /**
+     * Decides what to draw from a scan: phonetic PIN-pad labels take priority over numbered labels
+     * (which are themselves only drawn when the user has labels enabled).
+     */
+    private fun renderScan(result: ScanResult) {
         // the session may have ended while the (off-main-thread) scan was running
-        if (!labelsVisible || !sessionActive) return
-        labeledNodes = nodes
+        if (!sessionActive) return
 
+        val pad = result.pinPad
+        if (pad != null) {
+            renderPinLabels(pad)
+            return
+        }
+        // no PIN pad on screen: leave PIN mode so it reshuffles next time, then numbered labels
+        if (pinModeActive) exitPinMode()
+
+        if (labelsVisible) {
+            labeledNodes = result.labels
+            showOverlayLabels(result.labels)
+        } else {
+            labeledNodes = emptyList()
+            removeLabelOverlay()
+        }
+    }
+
+    /**
+     * Builds and draws the phonetic-word labels for a PIN pad. The digit→word shuffle is computed
+     * once when the pad first appears and reused (by digit value) across refreshes, so the labels
+     * stay stable while the pad is up.
+     */
+    private fun renderPinLabels(pad: PinPad) {
+        val digitsPresent = pad.digitNodes.keys.sorted()
+        if (!pinModeActive || pinDigitToSlot == null) {
+            val slotPool = pinWords.indices.toMutableList().also { it.shuffle() }
+            pinDigitToSlot = digitsPresent.zip(slotPool).toMap()
+            pinModeActive = true
+        }
+        val digitToSlot = pinDigitToSlot ?: return
+
+        pinSlotToNode.clear()
+        val nodes = ArrayList<LabeledNode>()
+        for ((digit, key) in pad.digitNodes) {
+            val slot = digitToSlot[digit] ?: continue
+            if (slot !in pinWords.indices) continue
+            val labeled = LabeledNode(slot, key.node, key.bounds, pinWords[slot])
+            pinSlotToNode[slot] = labeled
+            nodes.add(labeled)
+        }
+        pinDeleteNode = pad.deleteKey?.let { LabeledNode(PIN_NUM_DELETE, it.node, it.bounds, pinDeleteLabel) }
+        pinDeleteNode?.let { nodes.add(it) }
+        pinEnterNode = pad.enterKey?.let { LabeledNode(PIN_NUM_ENTER, it.node, it.bounds, pinEnterLabel) }
+        pinEnterNode?.let { nodes.add(it) }
+
+        // numbered selection is meaningless in PIN mode
+        labeledNodes = emptyList()
+        showOverlayLabels(nodes)
+    }
+
+    private fun exitPinMode() {
+        pinModeActive = false
+        pinDigitToSlot = null
+        pinSlotToNode.clear()
+        pinDeleteNode = null
+        pinEnterNode = null
+    }
+
+    private fun showOverlayLabels(nodes: List<LabeledNode>) {
+        if (nodes.isEmpty()) {
+            removeLabelOverlay()
+            return
+        }
         val wm = windowManager ?: return
         if (labelOverlay == null) {
             val view = LabelOverlayView(this)
@@ -295,6 +379,30 @@ class VoiceAccessService : AccessibilityService() {
      */
     fun clickLabel(number: Int): Boolean {
         val target = labeledNodes.firstOrNull { it.number == number } ?: return false
+        runOnMain { performClick(target) }
+        return true
+    }
+
+    // ---------------------------------------------------------------- PIN mode
+
+    /** Whether a numeric PIN pad is currently being shown with phonetic-word labels. */
+    fun isPinModeActive(): Boolean = pinModeActive
+
+    /** Clicks the PIN-pad key currently labelled with phonetic word [slot] (0-based). */
+    fun clickPinSlot(slot: Int): Boolean {
+        val target = pinSlotToNode[slot] ?: return false
+        runOnMain { performClick(target) }
+        return true
+    }
+
+    fun clickPinDelete(): Boolean {
+        val target = pinDeleteNode ?: return false
+        runOnMain { performClick(target) }
+        return true
+    }
+
+    fun clickPinEnter(): Boolean {
+        val target = pinEnterNode ?: return false
         runOnMain { performClick(target) }
         return true
     }
@@ -340,11 +448,10 @@ class VoiceAccessService : AccessibilityService() {
             }
         }
         listeningBar?.setTranscript("", isFinal = false)
-        // restore the labels if the user had them on in a previous session
-        if (labelsVisible) {
-            refreshLabels()
-            startLabelPolling()
-        }
+        // poll for the whole session: needed to detect a PIN pad even when numbered labels are off,
+        // and to restore numbered labels if the user had them on in a previous session
+        refreshLabels()
+        startLabelPolling()
     }
 
     fun updateTranscript(text: String, isFinal: Boolean) = runOnMain {
@@ -362,6 +469,8 @@ class VoiceAccessService : AccessibilityService() {
         removeConfirmationOverlay()
         // pause the overlay only; labelsVisible (the user's intent) is intentionally kept
         removeLabelOverlay()
+        // forget any PIN shuffle so the pad reshuffles next session it appears
+        exitPinMode()
     }
 
     // ---------------------------------------------------------------- continue/stop confirmation
@@ -512,6 +621,9 @@ class VoiceAccessService : AccessibilityService() {
         private const val SWIPE_DURATION_MS = 400L
         // default swipe distance as a portion of the screen, if no amount is given
         const val DEFAULT_SWIPE_FRACTION = 0.5f
+        // sentinel LabeledNode.number values for the PIN-pad delete/enter keys (not real slots)
+        private const val PIN_NUM_DELETE = -1
+        private const val PIN_NUM_ENTER = -2
 
         @Volatile
         var instance: VoiceAccessService? = null

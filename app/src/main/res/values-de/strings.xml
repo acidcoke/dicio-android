@@ -328,6 +328,13 @@
     <string name="skill_sentence_example_quick_settings">Schnelleinstellungen anzeigen</string>
     <string name="skill_quick_settings_shown">Schnelleinstellungen geöffnet</string>
     <string name="skill_quick_settings_service_disabled">Voice Access ist nicht aktiviert</string>
+    <string name="skill_name_pin_key">PIN-Tastenfeld</string>
+    <string name="skill_sentence_example_pin_key">Cäsar</string>
+    <string name="va_pin_delete">löschen</string>
+    <string name="va_pin_enter">eingabe</string>
+    <string name="skill_pin_key_pressed">Gedrückt</string>
+    <string name="skill_pin_key_no_key">Diese Taste gibt es nicht</string>
+    <string name="skill_pin_key_service_disabled">Voice Access ist nicht aktiviert</string>
     <string name="direction_up">oben</string>
     <string name="direction_down">unten</string>
     <string name="direction_left">links</string>

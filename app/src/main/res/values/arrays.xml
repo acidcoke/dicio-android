@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Phonetic words drawn on PIN-pad keys, in slot order (NATO alphabet, first ten letters).
+         The order here must match the slot_a..slot_j ids in sentences/<lang>/pin_key.yml. -->
+    <string-array name="va_pin_words">
+        <item>Alfa</item>
+        <item>Bravo</item>
+        <item>Charlie</item>
+        <item>Delta</item>
+        <item>Echo</item>
+        <item>Foxtrot</item>
+        <item>Golf</item>
+        <item>Hotel</item>
+        <item>India</item>
+        <item>Juliett</item>
+    </string-array>
+</resources>

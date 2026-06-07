@@ -39,6 +39,7 @@ import org.stypox.dicio.skills.stop_listening.StopListeningInfo
 import org.stypox.dicio.skills.scroll.ScrollInfo
 import org.stypox.dicio.skills.notifications.NotificationsInfo
 import org.stypox.dicio.skills.quick_settings.QuickSettingsInfo
+import org.stypox.dicio.skills.pin_key.PinKeyInfo
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -72,6 +73,7 @@ class SkillHandler @Inject constructor(
         ScrollInfo(dataStore),
         NotificationsInfo,
         QuickSettingsInfo,
+        PinKeyInfo,
     )
 
     private val fallbackSkillInfoList = listOf(

@@ -103,6 +103,22 @@ skills:
     sentences:
       - id: show
 
+  - id: pin_key
+    specificity: high
+    sentences:
+      - id: slot_a
+      - id: slot_b
+      - id: slot_c
+      - id: slot_d
+      - id: slot_e
+      - id: slot_f
+      - id: slot_g
+      - id: slot_h
+      - id: slot_i
+      - id: slot_j
+      - id: delete
+      - id: enter
+
   - id: scroll
     specificity: high
     sentences:

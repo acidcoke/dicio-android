@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Buchstabiertafel (Funkalphabet), erste zehn Buchstaben; Reihenfolge muss zu den
+         slot_a..slot_j IDs in sentences/de/pin_key.yml passen. -->
+    <string-array name="va_pin_words">
+        <item>Anton</item>
+        <item>Berta</item>
+        <item>Cäsar</item>
+        <item>Dora</item>
+        <item>Emil</item>
+        <item>Friedrich</item>
+        <item>Gustav</item>
+        <item>Heinrich</item>
+        <item>Ida</item>
+        <item>Julius</item>
+    </string-array>
+</resources>

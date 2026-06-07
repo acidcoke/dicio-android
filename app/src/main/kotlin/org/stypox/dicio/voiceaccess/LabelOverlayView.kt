@@ -71,7 +71,7 @@ class LabelOverlayView(context: Context) : View(context) {
         val textBaselineOffset = (fontMetrics.descent + fontMetrics.ascent) / 2f
 
         for (label in labels) {
-            val text = label.number.toString()
+            val text = label.text
             val textWidth = textPaint.measureText(text)
             val chipWidth = (textWidth + chipHPadding * 2).coerceAtLeast(chipHeight)
 
