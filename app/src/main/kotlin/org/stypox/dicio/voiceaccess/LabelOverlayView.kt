@@ -39,6 +39,8 @@ class LabelOverlayView(context: Context) : View(context) {
     private val chipHeight = dp(24f)
     private val chipHPadding = dp(8f)
     private val chipCorner = dp(12f)
+    // how far the chip dips below the element's top edge, so it sits just above without a big gap
+    private val chipDip = dp(22f)
 
     init {
         applyStyle(LabelStyle.DEFAULT)
@@ -70,18 +72,31 @@ class LabelOverlayView(context: Context) : View(context) {
         val fontMetrics = textPaint.fontMetrics
         val textBaselineOffset = (fontMetrics.descent + fontMetrics.ascent) / 2f
 
+        // node bounds are in screen coordinates; the overlay window may be inset (e.g. below the
+        // status bar / display cutout), so translate screen → view space using our on-screen origin
+        val origin = IntArray(2)
+        getLocationOnScreen(origin)
+        val originX = origin[0]
+        val originY = origin[1]
+
         for (label in labels) {
             val text = label.text
             val textWidth = textPaint.measureText(text)
             val chipWidth = (textWidth + chipHPadding * 2).coerceAtLeast(chipHeight)
 
-            // anchor the chip at the top-left corner of the element, nudged so it stays on screen
-            val anchor = label.bounds
-            var left = anchor.left.toFloat()
-            var top = anchor.top.toFloat() - chipHeight
+            // PIN labels center horizontally over the key; numbered labels anchor at its left corner
+            val anchorLeft = label.bounds.left - originX
+            val anchorTop = label.bounds.top - originY
+            val anchorCenterX = label.bounds.exactCenterX() - originX
+            var left = if (label.centered) {
+                anchorCenterX - chipWidth / 2f
+            } else {
+                anchorLeft.toFloat()
+            }
+            var top = anchorTop.toFloat() - chipHeight + chipDip
             if (top < 0f) {
                 // not enough room above: place it just inside the top edge of the element
-                top = anchor.top.toFloat()
+                top = anchorTop.toFloat()
             }
             left = left.coerceIn(0f, (width - chipWidth).coerceAtLeast(0f))
             top = top.coerceIn(0f, (height - chipHeight).coerceAtLeast(0f))

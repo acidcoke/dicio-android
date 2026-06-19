@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.graphics.PixelFormat
+import android.graphics.Rect
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -295,7 +296,7 @@ class VoiceAccessService : AccessibilityService() {
 
         val pad = result.pinPad
         if (pad != null) {
-            renderPinLabels(pad)
+            renderPinLabels(pad, result.labels)
             return
         }
         // no PIN pad on screen: leave PIN mode so it reshuffles next time, then numbered labels
@@ -315,31 +316,42 @@ class VoiceAccessService : AccessibilityService() {
      * once when the pad first appears and reused (by digit value) across refreshes, so the labels
      * stay stable while the pad is up.
      */
-    private fun renderPinLabels(pad: PinPad) {
-        val digitsPresent = pad.digitNodes.keys.sorted()
+    private fun renderPinLabels(pad: PinPad, allLabels: List<LabeledNode>) {
         if (!pinModeActive || pinDigitToSlot == null) {
+            // map every digit 0-9 (not just the ones present in this first scan) to a shuffled slot,
+            // so keys that render a moment later — e.g. the lockscreen drawing its pad progressively —
+            // still get a phonetic label instead of being left blank
             val slotPool = pinWords.indices.toMutableList().also { it.shuffle() }
-            pinDigitToSlot = digitsPresent.zip(slotPool).toMap()
+            pinDigitToSlot = (0..9).associateWith { slotPool[it % slotPool.size] }
             pinModeActive = true
         }
         val digitToSlot = pinDigitToSlot ?: return
 
         pinSlotToNode.clear()
         val nodes = ArrayList<LabeledNode>()
+        val pinBounds = HashSet<Rect>()
         for ((digit, key) in pad.digitNodes) {
             val slot = digitToSlot[digit] ?: continue
             if (slot !in pinWords.indices) continue
-            val labeled = LabeledNode(slot, key.node, key.bounds, pinWords[slot])
+            val labeled = LabeledNode(slot, key.node, key.bounds, pinWords[slot], centered = true)
             pinSlotToNode[slot] = labeled
             nodes.add(labeled)
+            pinBounds.add(key.bounds)
         }
-        pinDeleteNode = pad.deleteKey?.let { LabeledNode(PIN_NUM_DELETE, it.node, it.bounds, pinDeleteLabel) }
-        pinDeleteNode?.let { nodes.add(it) }
-        pinEnterNode = pad.enterKey?.let { LabeledNode(PIN_NUM_ENTER, it.node, it.bounds, pinEnterLabel) }
-        pinEnterNode?.let { nodes.add(it) }
+        pinDeleteNode = pad.deleteKey?.let { LabeledNode(PIN_NUM_DELETE, it.node, it.bounds, pinDeleteLabel, centered = true) }
+        pinDeleteNode?.let { nodes.add(it); pinBounds.add(it.bounds) }
+        pinEnterNode = pad.enterKey?.let { LabeledNode(PIN_NUM_ENTER, it.node, it.bounds, pinEnterLabel, centered = true) }
+        pinEnterNode?.let { nodes.add(it); pinBounds.add(it.bounds) }
 
-        // numbered selection is meaningless in PIN mode
-        labeledNodes = emptyList()
+        // keep ordinary numbered labels for non-keypad actions (e.g. the lockscreen "Notruf"/
+        // emergency button) so they stay selectable while phonetic labels cover the digit keys
+        val numbered = allLabels.asSequence()
+            .filter { it.bounds !in pinBounds }
+            .mapIndexed { i, l -> LabeledNode(i + 1, l.node, l.bounds) }
+            .toList()
+        labeledNodes = numbered
+        nodes.addAll(numbered)
+
         showOverlayLabels(nodes)
     }
 

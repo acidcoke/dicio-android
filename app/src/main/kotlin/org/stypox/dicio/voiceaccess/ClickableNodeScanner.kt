@@ -13,6 +13,8 @@ data class LabeledNode(
     val node: AccessibilityNodeInfo,
     val bounds: Rect,
     val text: String = number.toString(),
+    // PIN labels sit horizontally centered above the key; numbered labels sit at the corner
+    val centered: Boolean = false,
 )
 
 /** A single key of a detected numeric PIN pad. */
@@ -58,6 +60,8 @@ object ClickableNodeScanner {
 
     // require most of the ten digits before treating a keypad as a PIN pad
     private const val MIN_PIN_DIGITS = 8
+    // how deep under an actionable key to look for the digit text (e.g. key View → child TextView)
+    private const val DIGIT_SEARCH_DEPTH = 2
 
     /** Mutable accumulator carried through the recursive traversal. */
     private class Accumulator {
@@ -67,14 +71,23 @@ object ClickableNodeScanner {
         var hasPasswordField = false
         var deleteKey: PinKeyNode? = null
         var enterKey: PinKeyNode? = null
+        // digit / single-letter keys found inside the on-screen keyboard (IME) window, used to
+        // recognize a numeric-only keypad (a PIN entry whose password field lives in a SECURE
+        // window we cannot read, e.g. banking photoTAN apps)
+        val imeDigits = HashSet<Int>()
+        var imeLetterKeys = 0
     }
 
     fun scan(windows: List<AccessibilityWindowInfo>): ScanResult {
         val acc = Accumulator()
         for (window in windows) {
             val root = window.root ?: continue
-            collectFrom(root, acc)
+            val isIme = window.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD
+            collectFrom(root, acc, isIme)
         }
+        // a numeric-only on-screen keyboard (digits, no letters) signals a PIN/number entry even
+        // when no readable password field exists (the field may be in a SECURE window)
+        val numericImeKeypad = acc.imeDigits.size >= MIN_PIN_DIGITS && acc.imeLetterKeys == 0
 
         // order top-to-bottom, then left-to-right, so numbers read naturally
         acc.labels.sortWith(compareBy({ it.second.top }, { it.second.left }))
@@ -82,7 +95,8 @@ object ClickableNodeScanner {
             LabeledNode(number = index + 1, node = node, bounds = bounds)
         }
 
-        val pinPad = if (acc.hasPasswordField && acc.digits.size >= MIN_PIN_DIGITS) {
+        val pinTrigger = (acc.hasPasswordField || numericImeKeypad) && acc.digits.size >= MIN_PIN_DIGITS
+        val pinPad = if (pinTrigger) {
             PinPad(acc.digits, acc.deleteKey, acc.enterKey)
         } else {
             null
@@ -91,12 +105,12 @@ object ClickableNodeScanner {
         return ScanResult(labels, pinPad)
     }
 
-    private fun collectFrom(node: AccessibilityNodeInfo, acc: Accumulator) {
+    private fun collectFrom(node: AccessibilityNodeInfo, acc: Accumulator, isIme: Boolean) {
         if (node.isPassword) acc.hasPasswordField = true
 
         if (!node.isVisibleToUser) {
             // still descend into invisible containers, their children might be visible
-            forEachChild(node) { collectFrom(it, acc) }
+            forEachChild(node) { collectFrom(it, acc, isIme) }
             return
         }
 
@@ -110,21 +124,26 @@ object ClickableNodeScanner {
                 if (acc.seenBounds.add(key)) {
                     acc.labels.add(Pair(node, bounds))
                 }
-                accumulatePinKey(node, bounds, acc)
+                accumulatePinKey(node, bounds, acc, isIme)
             }
         }
 
-        forEachChild(node) { collectFrom(it, acc) }
+        forEachChild(node) { collectFrom(it, acc, isIme) }
     }
 
     /** Classifies an actionable node as a digit / delete / enter key for PIN detection. */
-    private fun accumulatePinKey(node: AccessibilityNodeInfo, bounds: Rect, acc: Accumulator) {
+    private fun accumulatePinKey(node: AccessibilityNodeInfo, bounds: Rect, acc: Accumulator, isIme: Boolean) {
         val label = (node.text ?: node.contentDescription)?.toString()?.trim().orEmpty()
-        val digit = label.singleOrNull()?.takeIf { it.isDigit() }?.digitToInt()
+        // many keypads (e.g. C24) put the digit on a non-clickable child TextView while the
+        // clickable key itself has empty text, so fall back to scanning descendants for the digit
+        val digit = singleDigit(label) ?: findDigitInDescendants(node, DIGIT_SEARCH_DEPTH)
         if (digit != null) {
             if (!acc.digits.containsKey(digit)) acc.digits[digit] = PinKeyNode(node, bounds)
+            if (isIme) acc.imeDigits.add(digit)
             return
         }
+        // a single-letter key in the keyboard means it is a text (QWERTY) layout, not a numeric pad
+        if (isIme && label.length == 1 && label[0].isLetter()) acc.imeLetterKeys++
         val low = label.lowercase()
         val resId = node.viewIdResourceName?.lowercase().orEmpty()
         if (acc.deleteKey == null && (low in DELETE_WORDS || DELETE_IDS.any { resId.contains(it) })) {
@@ -132,6 +151,24 @@ object ClickableNodeScanner {
         } else if (acc.enterKey == null && (low in ENTER_WORDS || ENTER_IDS.any { resId.contains(it) })) {
             acc.enterKey = PinKeyNode(node, bounds)
         }
+    }
+
+    private fun singleDigit(label: String): Int? =
+        label.singleOrNull()?.takeIf { it.isDigit() }?.digitToInt()
+
+    /**
+     * Looks for a single-digit label on [node]'s descendants, up to [depth] levels deep. Bounded so
+     * a label-less actionable node on a non-PIN screen doesn't trigger a full subtree walk.
+     */
+    private fun findDigitInDescendants(node: AccessibilityNodeInfo, depth: Int): Int? {
+        if (depth <= 0) return null
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            val label = (child.text ?: child.contentDescription)?.toString()?.trim().orEmpty()
+            singleDigit(label)?.let { return it }
+            findDigitInDescendants(child, depth - 1)?.let { return it }
+        }
+        return null
     }
 
     private fun isActionable(node: AccessibilityNodeInfo): Boolean {
