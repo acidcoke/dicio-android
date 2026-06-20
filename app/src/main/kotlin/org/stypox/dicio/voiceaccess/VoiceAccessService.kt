@@ -72,17 +72,21 @@ class VoiceAccessService : AccessibilityService() {
     // Resources forced to the app/Vosk locale (LocaleManager), NOT the service's system locale:
     // the PIN labels and the recognition grammar must match the language of the loaded Vosk model,
     // otherwise the words drawn on screen are out-of-grammar and nothing is recognized.
+    // null until the service is connected and the locale is known; falls back to the service's own
+    // resources. Must NOT be initialized from `resources` in the constructor, where the base context
+    // is not yet attached (getResources() would NPE).
     @Volatile
-    private var localizedResources: Resources = resources
+    private var localizedResources: Resources? = null
+    private val localeResources: Resources get() = localizedResources ?: resources
 
     // phonetic words (slot order) and delete/enter captions, in the app/Vosk locale
-    private val pinWords: Array<String> get() = localizedResources.getStringArray(R.array.va_pin_words)
-    private val pinDeleteLabel: String get() = localizedResources.getString(R.string.va_pin_delete)
-    private val pinEnterLabel: String get() = localizedResources.getString(R.string.va_pin_enter)
+    private val pinWords: Array<String> get() = localeResources.getStringArray(R.array.va_pin_words)
+    private val pinDeleteLabel: String get() = localeResources.getString(R.string.va_pin_delete)
+    private val pinEnterLabel: String get() = localeResources.getString(R.string.va_pin_enter)
 
     // global command words still allowed while a PIN pad is up (go back/home, scroll, stop, …)
     private val commandGrammarWords: List<String>
-        get() = localizedResources.getStringArray(R.array.va_command_grammar).toList()
+        get() = localeResources.getStringArray(R.array.va_command_grammar).toList()
 
     private val localeManager: LocaleManager by lazy {
         EntryPointAccessors
