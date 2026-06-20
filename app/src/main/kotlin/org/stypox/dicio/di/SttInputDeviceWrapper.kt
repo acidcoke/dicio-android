@@ -45,6 +45,8 @@ interface SttInputDeviceWrapper {
 
     fun onClick(eventListener: (InputEvent) -> Unit)
 
+    fun setRecognitionGrammar(grammar: List<String>?)
+
     fun reinitializeToReleaseResources()
 }
 
@@ -170,6 +172,10 @@ class SttInputDeviceWrapperImpl(
 
     override fun onClick(eventListener: (InputEvent) -> Unit) {
         sttInputDevice?.onClick(wrapEventListener(eventListener))
+    }
+
+    override fun setRecognitionGrammar(grammar: List<String>?) {
+        sttInputDevice?.setRecognitionGrammar(grammar)
     }
 
     override fun reinitializeToReleaseResources() {

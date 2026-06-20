@@ -18,6 +18,9 @@ class FakeSttInputDeviceWrapper : SttInputDeviceWrapper {
     override fun onClick(eventListener: (InputEvent) -> Unit) {
     }
 
+    override fun setRecognitionGrammar(grammar: List<String>?) {
+    }
+
     override fun reinitializeToReleaseResources() {
     }
 }

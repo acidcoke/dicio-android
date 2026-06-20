@@ -3,7 +3,7 @@
     <!-- Phonetic words drawn on PIN-pad keys, in slot order (NATO alphabet, first ten letters).
          The order here must match the slot_a..slot_j ids in sentences/<lang>/pin_key.yml. -->
     <string-array name="va_pin_words">
-        <item>Alfa</item>
+        <item>Alpha</item>
         <item>Bravo</item>
         <item>Charlie</item>
         <item>Delta</item>

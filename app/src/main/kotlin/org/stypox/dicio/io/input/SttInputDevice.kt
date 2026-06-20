@@ -12,6 +12,14 @@ interface SttInputDevice {
 
     fun onClick(eventListener: (InputEvent) -> Unit)
 
+    /**
+     * Constrains speech recognition to the given list of allowed words/phrases (a context grammar),
+     * or restores free recognition when [grammar] is `null`/empty. Used by Voice Access to bias the
+     * recognizer to the on-screen command set (e.g. the phonetic words of a PIN pad). Devices that
+     * cannot constrain their vocabulary ignore this. No-op by default.
+     */
+    fun setRecognitionGrammar(grammar: List<String>?) {}
+
     suspend fun destroy()
 
     companion object {

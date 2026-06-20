@@ -22,13 +22,12 @@ package org.stypox.dicio.io.input.vosk
 import org.stypox.dicio.io.input.InputEvent
 import org.stypox.dicio.io.input.SttState
 import org.stypox.dicio.ui.util.Progress
-import org.vosk.android.SpeechService
 
 /**
  * The internal state for [VoskInputDevice]. This is an enum with different fields depending on the
  * current state, to avoid having nullable objects all over the place in [VoskInputDevice].
  * [SttState] is symmetrical to this enum, except that it does not expose implementation-defined
- * fields to the UI, such as [SpeechService].
+ * fields to the UI, such as [SpeechStream].
  */
 sealed interface VoskState {
 
@@ -105,23 +104,23 @@ sealed interface VoskState {
     ) : VoskState
 
     /**
-     * The model, stored in [SpeechService], is ready in RAM, and can start listening at any time.
+     * The model, wrapped in a [SpeechStream], is ready in RAM, and can start listening at any time.
      */
     data class Loaded(
-        internal val speechService: SpeechService
+        internal val speechStream: SpeechStream
     ) : VoskState
 
     /**
-     * The model, stored in [SpeechService], is listening.
+     * The model, wrapped in a [SpeechStream], is listening.
      */
     data class Listening(
-        internal val speechService: SpeechService,
+        internal val speechStream: SpeechStream,
         internal val eventListener: (InputEvent) -> Unit,
     ) : VoskState
 
     /**
      * Converts this [VoskState] to a [SttState], which is basically the same, except that
-     * implementation-defined fields (e.g. [SpeechService]) are stripped away.
+     * implementation-defined fields (e.g. [SpeechStream]) are stripped away.
      */
     fun toUiState(): SttState {
         return when (this) {
