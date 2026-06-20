@@ -486,12 +486,23 @@ class VoskInputDevice(
     }
 
     /**
-     * Builds the [SpeechStream] for [model], constraining the recognizer to [grammar] when one is set
-     * (e.g. the phonetic words of a PIN pad) and otherwise running free dictation.
+     * Builds the [SpeechStream] for [model]. When a [grammar] is set (e.g. during a Voice Access
+     * session) it runs a [RelaySpeechStream]: one microphone feeding both a grammar-constrained and
+     * a free recognizer in parallel, so closed commands and free-form dictation are recognized at
+     * the same time. With no grammar it runs the plain free-dictation [SpeechService].
      */
     private fun buildSpeechStream(model: Model): SpeechStream {
-        val grammarJson = grammar?.let { toGrammarJson(it) }
-        return SingleSpeechStream(SpeechService(makeRecognizer(model, grammarJson), SAMPLE_RATE))
+        val currentGrammar = grammar
+        return if (currentGrammar != null) {
+            RelaySpeechStream(
+                model = model,
+                sampleRate = RELAY_SAMPLE_RATE,
+                grammarJson = toGrammarJson(currentGrammar),
+                maxAlternatives = ALTERNATIVE_COUNT,
+            )
+        } else {
+            SingleSpeechStream(SpeechService(makeRecognizer(model, null), SAMPLE_RATE))
+        }
     }
 
     private fun makeRecognizer(model: Model, grammarJson: String?): Recognizer {
@@ -521,6 +532,10 @@ class VoskInputDevice(
 
     companion object {
         private const val SAMPLE_RATE = 44100.0f
+        // the relay captures at the model-native 16 kHz: the small Vosk models discard everything
+        // above 8 kHz anyway, so this is no quality loss and costs less CPU (important with two
+        // recognizers decoding in parallel)
+        private const val RELAY_SAMPLE_RATE = 16000
         private const val ALTERNATIVE_COUNT = 5
         private val TAG = VoskInputDevice::class.simpleName
 

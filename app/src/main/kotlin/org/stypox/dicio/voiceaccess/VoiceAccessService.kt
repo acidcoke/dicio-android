@@ -373,12 +373,8 @@ class VoiceAccessService : AccessibilityService() {
             val slotPool = pinWords.indices.toMutableList().also { it.shuffle() }
             pinDigitToSlot = (0..9).associateWith { slotPool[it % slotPool.size] }
             pinModeActive = true
-            // constrain Vosk to the phonetic words plus the still-needed global commands, so PIN
-            // entry is near-perfect while go back/home, scroll and stop keep working
-            val grammar = pinWords.toList() +
-                listOf(pinDeleteLabel, pinEnterLabel) +
-                commandGrammarWords
-            sttInputDevice.setRecognitionGrammar(grammar)
+            // the session-wide grammar (set in showListening) already covers the phonetic words, so
+            // no PIN-specific grammar switch is needed here
         }
         val digitToSlot = pinDigitToSlot ?: return
 
@@ -411,14 +407,11 @@ class VoiceAccessService : AccessibilityService() {
     }
 
     private fun exitPinMode() {
-        val wasActive = pinModeActive
         pinModeActive = false
         pinDigitToSlot = null
         pinSlotToNode.clear()
         pinDeleteNode = null
         pinEnterNode = null
-        // back to free dictation now that the PIN pad is gone (no-op if no grammar was set)
-        if (wasActive) sttInputDevice.setRecognitionGrammar(null)
     }
 
     private fun showOverlayLabels(nodes: List<LabeledNode>) {
@@ -505,8 +498,15 @@ class VoiceAccessService : AccessibilityService() {
 
     // ---------------------------------------------------------------- listening bar
 
+    /** The closed command set the grammar recognizer is constrained to for the whole session: the
+     * phonetic PIN words, the delete/enter captions and all non-dictation command words. */
+    private fun fullCommandGrammar(): List<String> =
+        pinWords.toList() + listOf(pinDeleteLabel, pinEnterLabel) + commandGrammarWords
+
     fun showListening() = runOnMain {
         sessionActive = true
+        // run the grammar recognizer (commands) alongside free dictation for the whole session
+        sttInputDevice.setRecognitionGrammar(fullCommandGrammar())
         val wm = windowManager ?: return@runOnMain
         if (listeningBar == null) {
             val view = ListeningBarView(this)
@@ -534,6 +534,8 @@ class VoiceAccessService : AccessibilityService() {
      */
     fun hideListening() = runOnMain {
         sessionActive = false
+        // session over: drop the command grammar so the general assistant gets free dictation again
+        sttInputDevice.setRecognitionGrammar(null)
         stopLabelPolling()
         removeListeningBar()
         removeConfirmationOverlay()
