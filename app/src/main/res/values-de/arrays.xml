@@ -14,4 +14,30 @@
         <item>Ida</item>
         <item>Julius</item>
     </string-array>
+
+    <!-- Zusätzliche Wörter, die die Vosk-Grammatik bei angezeigtem PIN-Feld erlaubt, damit neben
+         den Buchstabierwörtern weiterhin die globalen Befehle gesprochen werden können (zurück /
+         nach Hause / scrollen / wischen / löschen / Eingabe / stopp). Ein Wort pro Eintrag. -->
+    <string-array name="va_command_grammar">
+        <item>tippe</item><item>tipp</item><item>drücke</item><item>drück</item>
+        <item>wähle</item><item>wähl</item>
+        <item>gehe</item><item>geh</item><item>navigiere</item><item>navigier</item>
+        <item>zurück</item><item>zur</item><item>vorherigen</item><item>vorherige</item>
+        <item>vorheriger</item><item>seite</item><item>bildschirm</item>
+        <item>hause</item><item>nach</item><item>zum</item><item>startbildschirm</item>
+        <item>startseite</item><item>hauptbildschirm</item>
+        <item>scrolle</item><item>scroll</item><item>fahre</item><item>fahr</item>
+        <item>oben</item><item>hoch</item><item>rauf</item><item>unten</item>
+        <item>runter</item><item>herunter</item><item>links</item><item>rechts</item>
+        <item>scrollen</item><item>gehen</item><item>fahren</item>
+        <item>bagbord</item><item>steuerbord</item>
+        <item>wische</item><item>wisch</item><item>ziehe</item><item>zieh</item><item>sie</item>
+        <item>löschen</item><item>entfernen</item><item>rücktaste</item>
+        <item>eingabe</item><item>bestätigen</item><item>fertig</item><item>ok</item>
+        <item>enter</item>
+        <item>stopp</item><item>stoppe</item><item>beende</item><item>beenden</item>
+        <item>abbrechen</item><item>das</item><item>zuhören</item><item>hör</item>
+        <item>höre</item><item>auf</item><item>aufhören</item><item>schluss</item>
+        <item>jetzt</item>
+    </string-array>
 </resources>

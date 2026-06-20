@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.stypox.dicio.R
+import org.stypox.dicio.di.SttInputDeviceWrapper
 import org.stypox.dicio.settings.datastore.UserSettings
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -67,6 +68,17 @@ class VoiceAccessService : AccessibilityService() {
     private val pinWords: Array<String> by lazy { resources.getStringArray(R.array.va_pin_words) }
     private val pinDeleteLabel: String by lazy { getString(R.string.va_pin_delete) }
     private val pinEnterLabel: String by lazy { getString(R.string.va_pin_enter) }
+
+    // global command words still allowed while a PIN pad is up (go back/home, scroll, stop, …)
+    private val commandGrammarWords: List<String> by lazy {
+        resources.getStringArray(R.array.va_command_grammar).toList()
+    }
+    // the STT device, reached the same way as the data store since this is a non-Hilt service
+    private val sttInputDevice: SttInputDeviceWrapper by lazy {
+        EntryPointAccessors
+            .fromApplication(applicationContext, VoiceAccessEntryPoint::class.java)
+            .sttInputDeviceWrapper()
+    }
 
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
@@ -324,6 +336,12 @@ class VoiceAccessService : AccessibilityService() {
             val slotPool = pinWords.indices.toMutableList().also { it.shuffle() }
             pinDigitToSlot = (0..9).associateWith { slotPool[it % slotPool.size] }
             pinModeActive = true
+            // constrain Vosk to the phonetic words plus the still-needed global commands, so PIN
+            // entry is near-perfect while go back/home, scroll and stop keep working
+            val grammar = pinWords.toList() +
+                listOf(pinDeleteLabel, pinEnterLabel) +
+                commandGrammarWords
+            sttInputDevice.setRecognitionGrammar(grammar)
         }
         val digitToSlot = pinDigitToSlot ?: return
 
@@ -356,11 +374,14 @@ class VoiceAccessService : AccessibilityService() {
     }
 
     private fun exitPinMode() {
+        val wasActive = pinModeActive
         pinModeActive = false
         pinDigitToSlot = null
         pinSlotToNode.clear()
         pinDeleteNode = null
         pinEnterNode = null
+        // back to free dictation now that the PIN pad is gone (no-op if no grammar was set)
+        if (wasActive) sttInputDevice.setRecognitionGrammar(null)
     }
 
     private fun showOverlayLabels(nodes: List<LabeledNode>) {
@@ -650,10 +671,11 @@ class VoiceAccessService : AccessibilityService() {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
 
-    /** Lets this non-Hilt AccessibilityService reach the settings data store. */
+    /** Lets this non-Hilt AccessibilityService reach the settings data store and the STT device. */
     @EntryPoint
     @InstallIn(SingletonComponent::class)
     interface VoiceAccessEntryPoint {
         fun dataStore(): DataStore<UserSettings>
+        fun sttInputDeviceWrapper(): SttInputDeviceWrapper
     }
 }
