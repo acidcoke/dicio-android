@@ -39,5 +39,50 @@
         <item>nine</item><item>ten</item><item>eleven</item><item>twelve</item>
         <item>thirteen</item><item>fourteen</item><item>fifteen</item><item>sixteen</item>
         <item>seventeen</item><item>eighteen</item><item>nineteen</item><item>twenty</item>
+        <!-- time -->
+        <item>what</item><item>whats</item><item>time</item><item>is</item><item>it</item>
+        <!-- flashlight -->
+        <item>switch</item><item>on</item><item>off</item><item>activate</item>
+        <item>enable</item><item>deactivate</item><item>disable</item><item>flashlight</item>
+        <item>torch</item><item>flash</item><item>light</item>
+        <!-- joke -->
+        <item>tell</item><item>me</item><item>say</item><item>joke</item><item>jokes</item>
+        <item>funny</item><item>pun</item><item>gag</item><item>prank</item><item>laugh</item>
+        <item>something</item><item>fun</item>
+        <!-- labels -->
+        <item>show</item><item>display</item><item>reveal</item><item>labels</item>
+        <item>numbers</item><item>grid</item><item>tags</item><item>hide</item>
+        <!-- start/stop listening -->
+        <item>start</item><item>wake</item><item>word</item><item>mute</item>
+        <item>unmute</item><item>microphone</item>
+        <!-- media -->
+        <item>play</item><item>resume</item><item>unpause</item><item>restart</item>
+        <item>song</item><item>media</item><item>track</item><item>music</item>
+        <item>audio</item><item>video</item><item>movie</item><item>stream</item>
+        <item>film</item><item>player</item><item>continue</item><item>playing</item>
+        <item>pause</item><item>halt</item><item>hold</item><item>last</item>
+        <item>replay</item><item>rewind</item><item>skip</item><item>next</item>
+        <item>following</item><item>jump</item><item>forward</item><item>queue</item>
+        <item>in</item>
+        <!-- notifications / quick settings -->
+        <item>open</item><item>expand</item><item>notification</item>
+        <item>notifications</item><item>bar</item><item>shade</item><item>panel</item>
+        <item>pull</item><item>drag</item><item>quick</item><item>settings</item>
+        <!-- yes / no -->
+        <item>yes</item><item>sure</item><item>certainly</item><item>affirmative</item>
+        <item>proceed</item><item>no</item><item>not</item><item>negative</item>
+        <!-- weather -->
+        <item>weather</item><item>how</item><item>cold</item><item>cool</item>
+        <item>warm</item><item>hot</item><item>sunny</item><item>rainy</item>
+        <item>raining</item><item>outside</item><item>like</item>
+        <!-- timer -->
+        <item>timer</item><item>set</item><item>create</item><item>end</item>
+        <item>terminate</item><item>silence</item><item>quiet</item><item>bell</item>
+        <item>alert</item><item>sound</item><item>ringtone</item><item>ping</item>
+        <item>long</item><item>left</item><item>when</item><item>expire</item>
+        <item>minute</item><item>minutes</item><item>second</item><item>seconds</item>
+        <item>hour</item><item>hours</item>
+        <!-- read notifications -->
+        <item>read</item><item>speak</item><item>my</item>
     </string-array>
 </resources>

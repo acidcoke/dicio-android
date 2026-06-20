@@ -45,5 +45,59 @@
         <item>neun</item><item>zehn</item><item>elf</item><item>zwölf</item>
         <item>dreizehn</item><item>vierzehn</item><item>fünfzehn</item><item>sechzehn</item>
         <item>siebzehn</item><item>achtzehn</item><item>neunzehn</item><item>zwanzig</item>
+        <!-- Uhrzeit -->
+        <item>wie</item><item>viel</item><item>wieviel</item><item>spät</item>
+        <item>uhr</item><item>ist</item><item>es</item><item>welche</item>
+        <item>uhrzeit</item><item>zeit</item>
+        <!-- Labels -->
+        <item>zeige</item><item>zeig</item><item>aktiviere</item><item>aktivier</item>
+        <item>die</item><item>nummern</item><item>labels</item><item>etiketten</item>
+        <item>blende</item><item>blend</item><item>ein</item><item>label</item>
+        <item>etikett</item><item>anzeigen</item><item>einblenden</item><item>aktivieren</item>
+        <item>versteck</item><item>verstecke</item><item>deaktiviere</item><item>deaktivier</item>
+        <item>aus</item><item>ausblenden</item><item>verstecken</item><item>deaktivieren</item>
+        <!-- Zuhören starten/stoppen -->
+        <item>starte</item><item>start</item><item>beginne</item><item>beginn</item>
+        <item>fang</item><item>an</item><item>mache</item><item>mach</item>
+        <item>mikro</item><item>mikrofon</item><item>mir</item><item>uns</item>
+        <item>mal</item><item>zu</item><item>warte</item><item>wart</item>
+        <item>lausche</item><item>lausch</item><item>schlüsselwort</item>
+        <item>aktivierungswort</item><item>wort</item><item>weg</item><item>stumm</item>
+        <item>stummschalten</item><item>unterlassen</item><item>lauschen</item><item>hören</item>
+        <!-- Medien -->
+        <item>gib</item><item>geb</item><item>spiele</item><item>spiel</item>
+        <item>audio</item><item>film</item><item>hörbuch</item><item>hörspiel</item>
+        <item>lied</item><item>musik</item><item>musikstück</item><item>podcast</item>
+        <item>song</item><item>stream</item><item>stück</item><item>track</item>
+        <item>video</item><item>wieder</item><item>ab</item><item>abspielen</item>
+        <item>fortsetzen</item><item>pausiere</item><item>pausieren</item><item>pausier</item>
+        <item>halte</item><item>halt</item><item>pause</item><item>anhalten</item>
+        <item>stoppen</item><item>letzte</item><item>letzten</item><item>wiederhole</item>
+        <item>wiederhol</item><item>skip</item><item>skipe</item><item>überspringe</item>
+        <item>überspring</item><item>springe</item><item>spring</item><item>nächste</item>
+        <item>nächsten</item><item>folgende</item><item>folgenden</item><item>warteschlange</item>
+        <item>schlange</item><item>der</item><item>den</item>
+        <!-- Benachrichtigungen / Schnelleinstellungen -->
+        <item>öffne</item><item>öffn</item><item>benachrichtigungen</item>
+        <item>benachrichtigungsleiste</item><item>benachrichtigungszentrale</item>
+        <item>öffnen</item><item>schnelleinstellungen</item><item>schnell</item>
+        <item>einstellungen</item>
+        <!-- Ja / Nein -->
+        <item>ja</item><item>bitte</item><item>allerdings</item><item>jawohl</item>
+        <item>jawoll</item><item>weitermachen</item><item>weiter</item><item>positiv</item>
+        <item>nein</item><item>danke</item><item>nee</item><item>no</item>
+        <item>nope</item><item>lass</item><item>negativ</item>
+        <!-- Wetter -->
+        <item>regnet</item><item>schneit</item><item>hagelt</item><item>draußen</item>
+        <item>wird</item><item>wetter</item><item>kalt</item><item>warm</item>
+        <item>eisig</item><item>nebelig</item><item>regnerisch</item><item>verschneit</item>
+        <item>sonnig</item><item>scheint</item><item>sonne</item>
+        <!-- Timer -->
+        <item>timer</item><item>ping</item><item>mich</item><item>in</item>
+        <item>stelle</item><item>stell</item><item>einen</item><item>für</item>
+        <item>dem</item><item>namen</item><item>genannt</item><item>läuft</item>
+        <item>lange</item><item>noch</item><item>wann</item>
+        <item>minute</item><item>minuten</item><item>sekunde</item><item>sekunden</item>
+        <item>stunde</item><item>stunden</item>
     </string-array>
 </resources>
