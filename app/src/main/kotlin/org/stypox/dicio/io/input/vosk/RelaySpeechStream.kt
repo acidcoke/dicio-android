@@ -175,19 +175,22 @@ class RelaySpeechStream(
      */
     private fun mergeResults(grammarJson: String?, freeJson: String?): String {
         val alternatives = JSONArray()
+        val seen = HashSet<String>() // de-dup texts shared by both recognizers, keeping the first
+
+        fun add(text: String, confidence: Double) {
+            if (text.isBlank() || !seen.add(text.lowercase())) return
+            alternatives.put(JSONObject().put("text", text).put("confidence", confidence))
+        }
 
         grammarJson?.let { parseAlternatives(it) }?.forEach { (text, confidence) ->
+            // grammar alternatives come first (so a command match wins ties), "[unk]" stripped
             val cleaned = text.split(WHITESPACE)
                 .filter { it.isNotBlank() && it != UNK_TOKEN }
                 .joinToString(" ")
-            if (cleaned.isNotBlank()) {
-                alternatives.put(JSONObject().put("text", cleaned).put("confidence", confidence))
-            }
+            add(cleaned, confidence)
         }
         freeJson?.let { parseAlternatives(it) }?.forEach { (text, confidence) ->
-            if (text.isNotBlank()) {
-                alternatives.put(JSONObject().put("text", text).put("confidence", confidence))
-            }
+            add(text, confidence)
         }
 
         return JSONObject().put("alternatives", alternatives).toString()

@@ -501,18 +501,12 @@ class VoskInputDevice(
                 maxAlternatives = ALTERNATIVE_COUNT,
             )
         } else {
-            SingleSpeechStream(SpeechService(makeRecognizer(model, null), SAMPLE_RATE))
+            SingleSpeechStream(SpeechService(makeFreeRecognizer(model), SAMPLE_RATE))
         }
     }
 
-    private fun makeRecognizer(model: Model, grammarJson: String?): Recognizer {
-        val recognizer = if (grammarJson == null) {
-            Recognizer(model, SAMPLE_RATE)
-        } else {
-            Recognizer(model, SAMPLE_RATE, grammarJson)
-        }
-        recognizer.setMaxAlternatives(ALTERNATIVE_COUNT)
-        return recognizer
+    private fun makeFreeRecognizer(model: Model): Recognizer {
+        return Recognizer(model, SAMPLE_RATE).apply { setMaxAlternatives(ALTERNATIVE_COUNT) }
     }
 
     private fun toGrammarJson(words: List<String>): String {
