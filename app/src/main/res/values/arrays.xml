@@ -12,7 +12,7 @@
         <item>Golf</item>
         <item>Hotel</item>
         <item>India</item>
-        <item>Juliett</item>
+        <item>Juliet</item>
     </string-array>
 
     <!-- Extra words allowed by the Vosk grammar while a PIN pad is on screen, so that besides the

@@ -3,6 +3,8 @@ package org.stypox.dicio.voiceaccess
 import android.accessibilityservice.AccessibilityService
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.content.res.Configuration
+import android.content.res.Resources
 import android.graphics.PixelFormat
 import android.graphics.Rect
 import android.os.Build
@@ -27,8 +29,11 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.stypox.dicio.R
+import org.stypox.dicio.di.LocaleManager
+import org.stypox.dicio.di.LocaleManagerModule
 import org.stypox.dicio.di.SttInputDeviceWrapper
 import org.stypox.dicio.settings.datastore.UserSettings
+import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -64,14 +69,25 @@ class VoiceAccessService : AccessibilityService() {
     private var pinDeleteNode: LabeledNode? = null
     private var pinEnterNode: LabeledNode? = null
 
-    // phonetic words (slot order) and delete/enter captions, localized; read lazily once
-    private val pinWords: Array<String> by lazy { resources.getStringArray(R.array.va_pin_words) }
-    private val pinDeleteLabel: String by lazy { getString(R.string.va_pin_delete) }
-    private val pinEnterLabel: String by lazy { getString(R.string.va_pin_enter) }
+    // Resources forced to the app/Vosk locale (LocaleManager), NOT the service's system locale:
+    // the PIN labels and the recognition grammar must match the language of the loaded Vosk model,
+    // otherwise the words drawn on screen are out-of-grammar and nothing is recognized.
+    @Volatile
+    private var localizedResources: Resources = resources
+
+    // phonetic words (slot order) and delete/enter captions, in the app/Vosk locale
+    private val pinWords: Array<String> get() = localizedResources.getStringArray(R.array.va_pin_words)
+    private val pinDeleteLabel: String get() = localizedResources.getString(R.string.va_pin_delete)
+    private val pinEnterLabel: String get() = localizedResources.getString(R.string.va_pin_enter)
 
     // global command words still allowed while a PIN pad is up (go back/home, scroll, stop, …)
-    private val commandGrammarWords: List<String> by lazy {
-        resources.getStringArray(R.array.va_command_grammar).toList()
+    private val commandGrammarWords: List<String>
+        get() = localizedResources.getStringArray(R.array.va_command_grammar).toList()
+
+    private val localeManager: LocaleManager by lazy {
+        EntryPointAccessors
+            .fromApplication(applicationContext, LocaleManagerModule::class.java)
+            .getLocaleManager()
     }
     // the STT device, reached the same way as the data store since this is a non-Hilt service
     private val sttInputDevice: SttInputDeviceWrapper by lazy {
@@ -98,7 +114,24 @@ class VoiceAccessService : AccessibilityService() {
         windowManager = getSystemService(WindowManager::class.java)
         instance = this
         collectLabelStyle()
+        collectLocale()
         Log.d(TAG, "VoiceAccessService connected")
+    }
+
+    /** Keeps [localizedResources] pinned to the app/Vosk language, so PIN labels and the grammar
+     * always match the loaded Vosk model rather than the device's system locale. */
+    private fun collectLocale() {
+        scope.launch {
+            localeManager.locale.collect { locale ->
+                localizedResources = resourcesForLocale(locale)
+            }
+        }
+    }
+
+    private fun resourcesForLocale(locale: Locale): Resources {
+        val config = Configuration(resources.configuration)
+        config.setLocale(locale)
+        return createConfigurationContext(config).resources
     }
 
     private fun collectLabelStyle() {
