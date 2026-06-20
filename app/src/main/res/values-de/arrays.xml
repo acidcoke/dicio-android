@@ -39,5 +39,11 @@
         <item>abbrechen</item><item>das</item><item>zuhören</item><item>hör</item>
         <item>höre</item><item>auf</item><item>aufhören</item><item>schluss</item>
         <item>jetzt</item>
+        <item>nummer</item><item>punkt</item>
+        <item>eins</item><item>zwei</item><item>drei</item><item>vier</item>
+        <item>fünf</item><item>sechs</item><item>sieben</item><item>acht</item>
+        <item>neun</item><item>zehn</item><item>elf</item><item>zwölf</item>
+        <item>dreizehn</item><item>vierzehn</item><item>fünfzehn</item><item>sechzehn</item>
+        <item>siebzehn</item><item>achtzehn</item><item>neunzehn</item><item>zwanzig</item>
     </string-array>
 </resources>
