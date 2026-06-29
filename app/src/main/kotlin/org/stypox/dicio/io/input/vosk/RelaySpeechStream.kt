@@ -11,31 +11,33 @@ import org.json.JSONObject
 import org.vosk.Model
 import org.vosk.Recognizer
 import org.vosk.android.RecognitionListener
+import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
- * A [SpeechStream] that captures the microphone **once** and fans the same PCM out to two Vosk
- * [Recognizer]s running in parallel on a shared [Model]:
+ * A [SpeechStream] that keeps recognition **constrained** by default and only falls back to free
+ * dictation for the argument of a command:
  *
- *  - a **grammar** recognizer constrained to the closed command set (+ `"[unk]"`), which recognizes
- *    commands near-perfectly but emits `"[unk]"` for anything off-grammar, and
- *  - a **free** recognizer doing open dictation.
+ *  - A single **grammar** recognizer (with word timestamps) decodes every utterance against the
+ *    closed command set. Pure closed commands ("scroll up", "go home", "tap five") are recognized
+ *    here and nothing else runs — maximum constraint, no force-fit.
+ *  - When the **first** recognized word is a [dictationTriggers] word (open/search/navigate/…), the
+ *    utterance has a free-form argument. At the endpoint the audio captured **after that word's end
+ *    timestamp** is re-decoded by a **free** recognizer, and the result is emitted as
+ *    `"<trigger> <free tail>"`. The grammar's own (force-fit) tail is discarded, so e.g. "open
+ *    signal" is no longer mangled into "open second".
  *
- * On each endpoint the two result sets are merged into a single alternatives list (grammar first,
- * with `"[unk]"` tokens stripped) and handed to the [RecognitionListener]; the downstream skill
- * scorer then picks the best match, so closed commands resolve off the grammar recognizer and
- * open-vocabulary speech (e.g. `open <app>`) off the free one — both at the same time.
+ * There is exactly one [AudioRecord]; the free recognizer is only ever fed buffered audio, so it
+ * adds no extra live decoding and runs solely on trigger utterances.
  *
- * This avoids the mic contention that comes from running two [org.vosk.android.SpeechService]s (two
- * `AudioRecord`s fighting over the mic): there is exactly one `AudioRecord` here.
- *
- * The [model] is owned by the caller and is NOT closed here; the two recognizers are created and
- * closed by the capture thread, after the loop has stopped touching them (to avoid a native crash).
+ * The [model] is owned by the caller and is NOT closed here; the recognizers are created and closed
+ * by the capture thread, after the loop has stopped touching them (to avoid a native crash).
  */
 class RelaySpeechStream(
     private val model: Model,
     private val sampleRate: Int,
-    private val grammarJson: String?,
+    private val grammarJson: String,
+    private val dictationTriggers: Set<String>,
     private val maxAlternatives: Int,
 ) : SpeechStream {
 
@@ -67,6 +69,13 @@ class RelaySpeechStream(
 
         @Volatile private var running = true
 
+        // PCM of the current utterance, kept so a trigger's tail can be re-decoded at the endpoint.
+        // Grows as audio arrives and is cleared at each endpoint, so its sample indices stay aligned
+        // with the grammar recognizer's per-utterance word timestamps.
+        private var buffer = ShortArray(sampleRate) // ~1 s to start
+        private var bufferLen = 0
+        private val maxBufferSamples = sampleRate * MAX_UTTERANCE_SECONDS
+
         fun stopAndJoin() {
             running = false
             // never join from our own thread (would deadlock); stopListening runs on main
@@ -80,9 +89,9 @@ class RelaySpeechStream(
         }
 
         override fun run() {
-            val bufferSizeShorts = (sampleRate * BUFFER_SECONDS).roundToInt()
+            val frameShorts = (sampleRate * FRAME_SECONDS).roundToInt()
             val recorder = try {
-                createRecorder(bufferSizeShorts)
+                createRecorder(frameShorts)
             } catch (e: Exception) {
                 postError(e)
                 return
@@ -93,31 +102,29 @@ class RelaySpeechStream(
                 return
             }
 
-            var freeRec: Recognizer? = null
             var grammarRec: Recognizer? = null
+            var freeRec: Recognizer? = null
             try {
-                freeRec = Recognizer(model, sampleRate.toFloat())
-                    .apply { setMaxAlternatives(maxAlternatives) }
-                grammarRec = grammarJson?.let {
-                    Recognizer(model, sampleRate.toFloat(), it)
-                        .apply { setMaxAlternatives(maxAlternatives) }
+                grammarRec = Recognizer(model, sampleRate.toFloat(), grammarJson).apply {
+                    setWords(true) // need per-word start/end timestamps to find the splice point
+                    setMaxAlternatives(0) // single best WITH word timings (alternatives mode drops them)
+                }
+                freeRec = Recognizer(model, sampleRate.toFloat()).apply {
+                    setMaxAlternatives(maxAlternatives)
                 }
 
                 recorder.startRecording()
-                val buffer = ShortArray(bufferSizeShorts)
+                val frame = ShortArray(frameShorts)
                 while (running) {
-                    val n = recorder.read(buffer, 0, buffer.size)
+                    val n = recorder.read(frame, 0, frame.size)
                     if (n <= 0) continue
+                    appendToBuffer(frame, n)
 
-                    val freeEnd = freeRec.acceptWaveForm(buffer, n)
-                    val grammarEnd = grammarRec?.acceptWaveForm(buffer, n) ?: false
-
-                    if (freeEnd || grammarEnd) {
-                        val merged = mergeResults(grammarRec?.result, freeRec.result)
-                        postResult(merged)
+                    if (grammarRec.acceptWaveForm(frame, n)) {
+                        postResult(buildResult(grammarRec.result, freeRec))
+                        bufferLen = 0 // start a fresh utterance, aligned with the recognizer's reset
                     } else {
-                        // free recognizer's partial drives the live transcript (dictation view)
-                        postPartial(freeRec.partialResult)
+                        postPartial(grammarRec.partialResult)
                     }
                 }
             } catch (e: Exception) {
@@ -133,6 +140,63 @@ class RelaySpeechStream(
                 grammarRec?.close()
                 freeRec?.close()
             }
+        }
+
+        private fun appendToBuffer(frame: ShortArray, n: Int) {
+            if (bufferLen >= maxBufferSamples) return // cap memory on a runaway utterance
+            if (bufferLen + n > buffer.size) {
+                buffer = buffer.copyOf(min(maxBufferSamples, maxOf(buffer.size * 2, bufferLen + n)))
+            }
+            val toCopy = min(n, buffer.size - bufferLen)
+            System.arraycopy(frame, 0, buffer, bufferLen, toCopy)
+            bufferLen += toCopy
+        }
+
+        /**
+         * Turns the grammar recognizer's final result into the JSON handed to [VoskListener]. If the
+         * first word is a [dictationTriggers] word, the buffered audio after that word is re-decoded
+         * by [freeRec] and emitted as `"<trigger> <tail>"`; otherwise the constrained grammar text is
+         * emitted as-is.
+         */
+        private fun buildResult(grammarResultJson: String, freeRec: Recognizer): String {
+            val obj = try {
+                JSONObject(grammarResultJson)
+            } catch (e: Exception) {
+                return EMPTY_RESULT
+            }
+
+            val words = obj.optJSONArray("result")
+            val first = words?.optJSONObject(0)
+            val firstWord = first?.optString("word")?.lowercase()?.takeIf { it.isNotBlank() }
+
+            if (firstWord != null && firstWord in dictationTriggers) {
+                val endSec = first.optDouble("end", 0.0)
+                val tailAlts = decodeTail(freeRec, (endSec * sampleRate).roundToInt())
+                return triggerResult(firstWord, tailAlts)
+            }
+
+            // not a trigger: emit the constrained text, with any "[unk]" tokens stripped
+            val cleaned = obj.optString("text")
+                .split(WHITESPACE)
+                .filter { it.isNotBlank() && it != UNK_TOKEN }
+                .joinToString(" ")
+            if (cleaned.isBlank()) return EMPTY_RESULT
+            return JSONObject().put(
+                "alternatives",
+                JSONArray().put(JSONObject().put("text", cleaned).put("confidence", 1.0)),
+            ).toString()
+        }
+
+        /** Re-decodes [buffer] from [startSample] to the end with the free recognizer. */
+        private fun decodeTail(freeRec: Recognizer, startSample: Int): List<Pair<String, Double>> {
+            val from = startSample.coerceIn(0, bufferLen)
+            val count = bufferLen - from
+            freeRec.reset()
+            if (count > 0) {
+                val tail = buffer.copyOfRange(from, bufferLen)
+                freeRec.acceptWaveForm(tail, count)
+            }
+            return parseAlternatives(freeRec.finalResult)
         }
 
         private fun postResult(json: String) {
@@ -151,12 +215,29 @@ class RelaySpeechStream(
         }
     }
 
-    private fun createRecorder(bufferSizeShorts: Int): AudioRecord {
+    /**
+     * Builds the merged result for a trigger utterance: each free-tail alternative prefixed with the
+     * (grammar-recognized, reliable) [trigger] word. Duplicates are dropped, order preserved. If the
+     * tail is empty (e.g. just "open" with no app), the bare trigger word is emitted.
+     */
+    private fun triggerResult(trigger: String, tailAlts: List<Pair<String, Double>>): String {
+        val alternatives = JSONArray()
+        val seen = HashSet<String>()
+        fun add(text: String, confidence: Double) {
+            if (text.isBlank() || !seen.add(text.lowercase())) return
+            alternatives.put(JSONObject().put("text", text).put("confidence", confidence))
+        }
+        tailAlts.forEach { (tail, confidence) -> add("$trigger $tail".trim(), confidence) }
+        if (alternatives.length() == 0) add(trigger, 1.0)
+        return JSONObject().put("alternatives", alternatives).toString()
+    }
+
+    private fun createRecorder(frameShorts: Int): AudioRecord {
         val minBytes = AudioRecord.getMinBufferSize(
             sampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT
         )
         // make the hardware buffer comfortably larger than one read chunk
-        val bufferBytes = maxOf(minBytes, bufferSizeShorts * 2 * 2)
+        val bufferBytes = maxOf(minBytes, frameShorts * 2 * 2)
         @Suppress("MissingPermission") // RECORD_AUDIO is required for any STT and assumed granted
         return AudioRecord(
             MediaRecorder.AudioSource.VOICE_RECOGNITION,
@@ -165,35 +246,6 @@ class RelaySpeechStream(
             AudioFormat.ENCODING_PCM_16BIT,
             bufferBytes,
         )
-    }
-
-    /**
-     * Merges the grammar and free result JSONs into one `{"alternatives": [...]}` payload, putting
-     * the (cleaned) grammar alternatives first so that on a score tie the constrained command match
-     * wins. `"[unk]"` tokens are removed from grammar alternatives; alternatives that become empty
-     * are dropped.
-     */
-    private fun mergeResults(grammarJson: String?, freeJson: String?): String {
-        val alternatives = JSONArray()
-        val seen = HashSet<String>() // de-dup texts shared by both recognizers, keeping the first
-
-        fun add(text: String, confidence: Double) {
-            if (text.isBlank() || !seen.add(text.lowercase())) return
-            alternatives.put(JSONObject().put("text", text).put("confidence", confidence))
-        }
-
-        grammarJson?.let { parseAlternatives(it) }?.forEach { (text, confidence) ->
-            // grammar alternatives come first (so a command match wins ties), "[unk]" stripped
-            val cleaned = text.split(WHITESPACE)
-                .filter { it.isNotBlank() && it != UNK_TOKEN }
-                .joinToString(" ")
-            add(cleaned, confidence)
-        }
-        freeJson?.let { parseAlternatives(it) }?.forEach { (text, confidence) ->
-            add(text, confidence)
-        }
-
-        return JSONObject().put("alternatives", alternatives).toString()
     }
 
     private fun parseAlternatives(json: String): List<Pair<String, Double>> {
@@ -206,6 +258,7 @@ class RelaySpeechStream(
             return (0 until arr.length())
                 .mapNotNull { arr.optJSONObject(it) }
                 .map { Pair(it.optString("text").trim(), it.optDouble("confidence", 1.0)) }
+                .filter { it.first.isNotBlank() }
         }
         val text = obj.optString("text").trim()
         return if (text.isNotEmpty()) listOf(Pair(text, 1.0)) else emptyList()
@@ -213,8 +266,10 @@ class RelaySpeechStream(
 
     companion object {
         private val TAG = RelaySpeechStream::class.simpleName
-        private const val BUFFER_SECONDS = 0.2f
+        private const val FRAME_SECONDS = 0.2f
+        private const val MAX_UTTERANCE_SECONDS = 30
         private const val UNK_TOKEN = "[unk]"
         private val WHITESPACE = Regex("\\s+")
+        private val EMPTY_RESULT = JSONObject().put("alternatives", JSONArray()).toString()
     }
 }

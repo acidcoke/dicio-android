@@ -21,9 +21,9 @@
          phonetic PIN words near-perfect. One word per token; localized per language. -->
     <string-array name="va_command_grammar">
         <item>press</item><item>tap</item><item>type</item>
-        <item>go</item><item>move</item><item>navigate</item><item>back</item>
-        <item>to</item><item>the</item><item>previous</item><item>screen</item>
-        <item>page</item><item>home</item><item>main</item>
+        <item>click</item><item>select</item><item>choose</item><item>hit</item>
+        <item>touch</item><item>pick</item>
+        <item>go</item><item>back</item><item>home</item>
         <item>scroll</item><item>up</item><item>upward</item><item>upwards</item>
         <item>down</item><item>downward</item><item>downwards</item>
         <item>left</item><item>right</item><item>swipe</item><item>flick</item>
@@ -39,6 +39,8 @@
         <item>nine</item><item>ten</item><item>eleven</item><item>twelve</item>
         <item>thirteen</item><item>fourteen</item><item>fifteen</item><item>sixteen</item>
         <item>seventeen</item><item>eighteen</item><item>nineteen</item><item>twenty</item>
+        <item>thirty</item><item>forty</item><item>fifty</item><item>sixty</item>
+        <item>seventy</item><item>eighty</item><item>ninety</item><item>hundred</item>
         <!-- time -->
         <item>what</item><item>whats</item><item>time</item><item>is</item><item>it</item>
         <!-- flashlight -->
@@ -65,7 +67,11 @@
         <item>following</item><item>jump</item><item>forward</item><item>queue</item>
         <item>in</item>
         <!-- notifications / quick settings -->
-        <item>open</item><item>expand</item><item>notification</item>
+        <!-- NOTE: "open" is intentionally NOT in the grammar: it is also the OpenSkill trigger for
+             arbitrary (open-vocab) app names, and including it makes the grammar recognizer force-fit
+             app names onto grammar words (e.g. "open signal" -> "open second"). The free recognizer
+             handles "open notifications" fine since both words are common vocabulary. -->
+        <item>expand</item><item>notification</item>
         <item>notifications</item><item>bar</item><item>shade</item><item>panel</item>
         <item>pull</item><item>drag</item><item>quick</item><item>settings</item>
         <!-- yes / no -->
@@ -84,5 +90,29 @@
         <item>hour</item><item>hours</item>
         <!-- read notifications -->
         <item>read</item><item>speak</item><item>my</item>
+    </string-array>
+
+    <!-- Leading words of the open-vocabulary (capturing) skills: open/search/navigate/call/translate/
+         weather questions. When the grammar recognizer hears one of these as the FIRST word of an
+         utterance, the rest of the utterance (everything after this word's end timestamp) is
+         re-decoded with the free recognizer for dictation, instead of being force-fit onto grammar
+         words. Pure closed commands never start with one of these, so they stay fully constrained.
+         These words are also added to the grammar vocabulary (in code) so they can be recognized. -->
+    <string-array name="va_dictation_triggers">
+        <!-- open -->
+        <item>open</item><item>run</item><item>execute</item><item>view</item>
+        <item>see</item><item>launch</item><item>start</item>
+        <!-- search -->
+        <item>search</item><item>research</item><item>seek</item><item>lookup</item>
+        <item>look</item><item>find</item>
+        <!-- navigation -->
+        <item>navigate</item><item>take</item><item>bring</item><item>give</item>
+        <!-- telephone -->
+        <item>call</item><item>ring</item><item>phone</item><item>dial</item>
+        <item>contact</item>
+        <!-- translation -->
+        <item>translate</item>
+        <!-- weather (question words like what/how/is are kept constrained, not triggers) -->
+        <item>weather</item>
     </string-array>
 </resources>

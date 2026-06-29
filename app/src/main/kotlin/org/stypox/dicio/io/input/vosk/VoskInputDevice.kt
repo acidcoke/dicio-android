@@ -90,6 +90,7 @@ class VoskInputDevice(
     // the context grammar currently constraining recognition (null = free recognition), and the
     // loaded model kept around so the recognizer can be rebuilt with a new grammar without reloading
     @Volatile private var grammar: List<String>? = null
+    @Volatile private var dictationTriggers: List<String> = emptyList()
     @Volatile private var loadedModel: Model? = null
 
     init {
@@ -448,10 +449,11 @@ class VoskInputDevice(
         }
     }
 
-    override fun setRecognitionGrammar(grammar: List<String>?) {
+    override fun setRecognitionGrammar(grammar: List<String>?, dictationTriggers: List<String>) {
         val normalized = grammar?.takeIf { it.isNotEmpty() }
-        if (this.grammar == normalized) return
+        if (this.grammar == normalized && this.dictationTriggers == dictationTriggers) return
         this.grammar = normalized
+        this.dictationTriggers = dictationTriggers
         scope.launch { applyGrammar() }
     }
 
@@ -494,10 +496,13 @@ class VoskInputDevice(
     private fun buildSpeechStream(model: Model): SpeechStream {
         val currentGrammar = grammar
         return if (currentGrammar != null) {
+            val triggers = dictationTriggers.map { it.lowercase() }
             RelaySpeechStream(
                 model = model,
                 sampleRate = RELAY_SAMPLE_RATE,
-                grammarJson = toGrammarJson(currentGrammar),
+                // the trigger words must be recognizable, so add them to the grammar vocabulary
+                grammarJson = toGrammarJson(currentGrammar + triggers),
+                dictationTriggers = triggers.toSet(),
                 maxAlternatives = ALTERNATIVE_COUNT,
             )
         } else {

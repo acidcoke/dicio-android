@@ -2,6 +2,7 @@ package org.stypox.dicio.voiceaccess
 
 import android.accessibilityservice.AccessibilityService
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.content.res.Resources
@@ -79,6 +80,12 @@ class VoiceAccessService : AccessibilityService() {
     private var localizedResources: Resources? = null
     private val localeResources: Resources get() = localizedResources ?: resources
 
+    // a Context pinned to the app/Vosk locale, used to inflate overlay views (the listening bar,
+    // confirmation dialog) so their strings match the app language and not the system locale
+    @Volatile
+    private var localizedContext: Context? = null
+    private val localeContext: Context get() = localizedContext ?: this
+
     // phonetic words (slot order) and delete/enter captions, in the app/Vosk locale
     private val pinWords: Array<String> get() = localeResources.getStringArray(R.array.va_pin_words)
     private val pinDeleteLabel: String get() = localeResources.getString(R.string.va_pin_delete)
@@ -87,6 +94,11 @@ class VoiceAccessService : AccessibilityService() {
     // global command words still allowed while a PIN pad is up (go back/home, scroll, stop, …)
     private val commandGrammarWords: List<String>
         get() = localeResources.getStringArray(R.array.va_command_grammar).toList()
+
+    // leading words of the open-vocab skills (open/search/…); when one is heard as the first word,
+    // the rest of the utterance is dictated free-form (see RelaySpeechStream)
+    private val dictationTriggers: List<String>
+        get() = localeResources.getStringArray(R.array.va_dictation_triggers).toList()
 
     private val localeManager: LocaleManager by lazy {
         EntryPointAccessors
@@ -127,15 +139,17 @@ class VoiceAccessService : AccessibilityService() {
     private fun collectLocale() {
         scope.launch {
             localeManager.locale.collect { locale ->
-                localizedResources = resourcesForLocale(locale)
+                val ctx = contextForLocale(locale)
+                localizedContext = ctx
+                localizedResources = ctx.resources
             }
         }
     }
 
-    private fun resourcesForLocale(locale: Locale): Resources {
+    private fun contextForLocale(locale: Locale): Context {
         val config = Configuration(resources.configuration)
         config.setLocale(locale)
-        return createConfigurationContext(config).resources
+        return createConfigurationContext(config)
     }
 
     private fun collectLabelStyle() {
@@ -505,11 +519,12 @@ class VoiceAccessService : AccessibilityService() {
 
     fun showListening() = runOnMain {
         sessionActive = true
-        // run the grammar recognizer (commands) alongside free dictation for the whole session
-        sttInputDevice.setRecognitionGrammar(fullCommandGrammar())
+        // constrain recognition to the command set; free-form dictation kicks in only after a
+        // trigger word (open/search/…) — see RelaySpeechStream
+        sttInputDevice.setRecognitionGrammar(fullCommandGrammar(), dictationTriggers)
         val wm = windowManager ?: return@runOnMain
         if (listeningBar == null) {
-            val view = ListeningBarView(this)
+            val view = ListeningBarView(localeContext)
             try {
                 wm.addView(view, listeningBarParams())
                 listeningBar = view
@@ -554,7 +569,7 @@ class VoiceAccessService : AccessibilityService() {
     fun showContinuePrompt(onContinue: () -> Unit, onStop: () -> Unit) = runOnMain {
         val wm = windowManager ?: return@runOnMain
         if (confirmationOverlay != null) return@runOnMain
-        val view = ConfirmationOverlayView(this, onContinue, onStop)
+        val view = ConfirmationOverlayView(localeContext, onContinue, onStop)
         try {
             wm.addView(view, confirmationParams())
             confirmationOverlay = view
