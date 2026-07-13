@@ -465,6 +465,10 @@ class VoiceAccessService : AccessibilityService() {
     /** Whether a numeric PIN pad is currently being shown with phonetic-word labels. */
     fun isPinModeActive(): Boolean = pinModeActive
 
+    /** 0-based slot index for a spoken phonetic word (case-insensitive), or null if not a pin word. */
+    fun pinSlotForWord(word: String): Int? =
+        pinWords.indexOfFirst { it.equals(word.trim(), ignoreCase = true) }.takeIf { it >= 0 }
+
     /** Clicks the PIN-pad key currently labelled with phonetic word [slot] (0-based). */
     fun clickPinSlot(slot: Int): Boolean {
         val target = pinSlotToNode[slot] ?: return false
