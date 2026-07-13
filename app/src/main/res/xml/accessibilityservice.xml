@@ -5,7 +5,7 @@
   perform gestures (to fall back to tapping a node by coordinates).
 -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged|typeWindowsChanged"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged|typeWindowsChanged|typeViewHoverEnter"
     android:accessibilityFeedbackType="feedbackGeneric|feedbackVisual"
     android:accessibilityFlags="flagRetrieveInteractiveWindows|flagReportViewIds|flagDefault"
     android:canPerformGestures="true"

@@ -136,19 +136,7 @@ class VoiceAccessService : AccessibilityService() {
         instance = this
         collectLabelStyle()
         collectLocale()
-        requestMouseMotionEvents()
         Log.d(TAG, "VoiceAccessService connected")
-    }
-
-    /** Opts into [onMotionEvent] callbacks for a connected mouse's pointer, so "mouse click" has a
-     * position to tap. No-op below API 34, where AccessibilityService cannot observe pointer motion. */
-    @SuppressLint("NewApi") // guarded by the SDK_INT check
-    private fun requestMouseMotionEvents() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return
-        serviceInfo = serviceInfo?.apply {
-            flags = flags or android.accessibilityservice.AccessibilityServiceInfo.FLAG_SEND_MOTION_EVENTS
-            setMotionEventSources(android.view.InputDevice.SOURCE_MOUSE)
-        }
     }
 
     /** Keeps [localizedResources] pinned to the app/Vosk language, so PIN labels and the grammar
@@ -192,6 +180,9 @@ class VoiceAccessService : AccessibilityService() {
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED,
             AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED,
             AccessibilityEvent.TYPE_WINDOWS_CHANGED -> scheduleLabelRefresh()
+            // fires as a mouse pointer enters a view, independent of touch exploration; doesn't
+            // consume the underlying input, unlike requesting raw motion events would
+            AccessibilityEvent.TYPE_VIEW_HOVER_ENTER -> event.source?.let { lastHoveredNode = it }
         }
     }
 
@@ -492,24 +483,23 @@ class VoiceAccessService : AccessibilityService() {
 
     // ---------------------------------------------------------------- mouse pointer
 
-    /** Last known position of a connected physical mouse's pointer, tracked via [onMotionEvent]
-     * (API 34+ only — older Android has no accessibility hook for hardware pointer motion). */
+    /** The view last entered by a hovering pointer (mouse, or a touch-exploring finger), tracked via
+     * TYPE_VIEW_HOVER_ENTER events. This observes input passively — unlike requesting raw motion
+     * events (FLAG_SEND_MOTION_EVENTS), which redirects the whole input stream to this service and
+     * stops it from reaching the app underneath, breaking normal mouse use. */
     @Volatile
-    private var lastMousePoint: android.graphics.PointF? = null
-
-    @SuppressLint("NewApi") // only called back by the framework once the API 34+ flag is set below
-    override fun onMotionEvent(event: android.view.MotionEvent) {
-        lastMousePoint = android.graphics.PointF(event.x, event.y)
-    }
+    private var lastHoveredNode: AccessibilityNodeInfo? = null
 
     /**
-     * Dispatches a tap gesture at the last known mouse-pointer position.
+     * Clicks the view last entered by the mouse pointer. Falls back to a clickable ancestor, then to
+     * a tap gesture at the view's center, same as [clickLabel].
      *
-     * @return true if a mouse position was known and a click gesture was dispatched
+     * @return true if a hovered position was known and a click was dispatched
      */
     fun clickAtMousePointer(): Boolean {
-        val point = lastMousePoint ?: return false
-        runOnMain { dispatchTapAt(point.x, point.y, longPress = false) }
+        val node = lastHoveredNode ?: return false
+        val bounds = Rect().also { node.getBoundsInScreen(it) }
+        runOnMain { performClick(node, bounds) }
         return true
     }
 
@@ -541,36 +531,36 @@ class VoiceAccessService : AccessibilityService() {
         return true
     }
 
-    private fun performClick(label: LabeledNode) {
-        var node: AccessibilityNodeInfo? = label.node
-        while (node != null) {
-            if (node.isClickable &&
-                node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-            ) {
+    private fun performClick(label: LabeledNode) = performClick(label.node, label.bounds)
+
+    private fun performLongClick(label: LabeledNode) = performLongClick(label.node, label.bounds)
+
+    /**
+     * Clicks [node]. Falls back to a clickable ancestor, then to a tap gesture at [bounds]'s center
+     * if no node in the chain accepts ACTION_CLICK.
+     */
+    private fun performClick(node: AccessibilityNodeInfo, bounds: Rect) {
+        var n: AccessibilityNodeInfo? = node
+        while (n != null) {
+            if (n.isClickable && n.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
                 return
             }
-            node = node.parent
+            n = n.parent
         }
         // last resort: tap at the center of the element's bounds
-        dispatchTap(label, longPress = false)
+        dispatchTapAt(bounds.exactCenterX(), bounds.exactCenterY(), longPress = false)
     }
 
-    private fun performLongClick(label: LabeledNode) {
-        var node: AccessibilityNodeInfo? = label.node
-        while (node != null) {
-            if (node.isLongClickable &&
-                node.performAction(AccessibilityNodeInfo.ACTION_LONG_CLICK)
-            ) {
+    private fun performLongClick(node: AccessibilityNodeInfo, bounds: Rect) {
+        var n: AccessibilityNodeInfo? = node
+        while (n != null) {
+            if (n.isLongClickable && n.performAction(AccessibilityNodeInfo.ACTION_LONG_CLICK)) {
                 return
             }
-            node = node.parent
+            n = n.parent
         }
         // last resort: a long-press gesture at the center of the element's bounds
-        dispatchTap(label, longPress = true)
-    }
-
-    private fun dispatchTap(label: LabeledNode, longPress: Boolean) {
-        dispatchTapAt(label.bounds.exactCenterX(), label.bounds.exactCenterY(), longPress)
+        dispatchTapAt(bounds.exactCenterX(), bounds.exactCenterY(), longPress = true)
     }
 
     @SuppressLint("NewApi") // guarded by the SDK_INT check below
