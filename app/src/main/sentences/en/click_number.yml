@@ -1,8 +1,8 @@
 explicit:
-  - tap|click|press|number .number.
+  - tap|press|number .number.
 
 hold:
-  - hold|(long press)|(long click) .number.
+  - hold|(long press) .number.
 
 bare:
   - .number.

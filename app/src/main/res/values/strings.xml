@@ -223,6 +223,11 @@
     <string name="skill_click_number_no_label">There is no label %1$d</string>
     <string name="skill_click_number_could_not_understand">Which number?</string>
     <string name="skill_click_number_service_disabled">Voice Access is not enabled</string>
+    <string name="skill_name_mouse_click">Mouse click</string>
+    <string name="skill_sentence_example_mouse_click">Click</string>
+    <string name="skill_mouse_click_clicked">Clicked</string>
+    <string name="skill_mouse_click_no_position">No mouse position known</string>
+    <string name="skill_mouse_click_service_disabled">Voice Access is not enabled</string>
     <string name="skill_name_stop_listening">Stop listening</string>
     <string name="skill_sentence_example_stop_listening">Stop</string>
     <string name="skill_stop_listening_stopped">Stopped listening</string>

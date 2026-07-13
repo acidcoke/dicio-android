@@ -22,7 +22,7 @@
     <string-array name="va_command_grammar">
         <item>press</item><item>tap</item><item>type</item>
         <item>click</item><item>select</item><item>choose</item><item>hit</item>
-        <item>touch</item><item>pick</item>
+        <item>touch</item><item>pick</item><item>mouse</item>
         <item>go</item><item>back</item><item>home</item>
         <item>scroll</item><item>up</item><item>upward</item><item>upwards</item>
         <item>down</item><item>downward</item><item>downwards</item>

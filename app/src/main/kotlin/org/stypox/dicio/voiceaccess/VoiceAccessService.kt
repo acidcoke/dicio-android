@@ -136,7 +136,19 @@ class VoiceAccessService : AccessibilityService() {
         instance = this
         collectLabelStyle()
         collectLocale()
+        requestMouseMotionEvents()
         Log.d(TAG, "VoiceAccessService connected")
+    }
+
+    /** Opts into [onMotionEvent] callbacks for a connected mouse's pointer, so "mouse click" has a
+     * position to tap. No-op below API 34, where AccessibilityService cannot observe pointer motion. */
+    @SuppressLint("NewApi") // guarded by the SDK_INT check
+    private fun requestMouseMotionEvents() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return
+        serviceInfo = serviceInfo?.apply {
+            flags = flags or android.accessibilityservice.AccessibilityServiceInfo.FLAG_SEND_MOTION_EVENTS
+            setMotionEventSources(android.view.InputDevice.SOURCE_MOUSE)
+        }
     }
 
     /** Keeps [localizedResources] pinned to the app/Vosk language, so PIN labels and the grammar
@@ -478,6 +490,29 @@ class VoiceAccessService : AccessibilityService() {
         return true
     }
 
+    // ---------------------------------------------------------------- mouse pointer
+
+    /** Last known position of a connected physical mouse's pointer, tracked via [onMotionEvent]
+     * (API 34+ only — older Android has no accessibility hook for hardware pointer motion). */
+    @Volatile
+    private var lastMousePoint: android.graphics.PointF? = null
+
+    @SuppressLint("NewApi") // only called back by the framework once the API 34+ flag is set below
+    override fun onMotionEvent(event: android.view.MotionEvent) {
+        lastMousePoint = android.graphics.PointF(event.x, event.y)
+    }
+
+    /**
+     * Dispatches a tap gesture at the last known mouse-pointer position.
+     *
+     * @return true if a mouse position was known and a click gesture was dispatched
+     */
+    fun clickAtMousePointer(): Boolean {
+        val point = lastMousePoint ?: return false
+        runOnMain { dispatchTapAt(point.x, point.y, longPress = false) }
+        return true
+    }
+
     // ---------------------------------------------------------------- PIN mode
 
     /** Whether a numeric PIN pad is currently being shown with phonetic-word labels. */
@@ -534,12 +569,14 @@ class VoiceAccessService : AccessibilityService() {
         dispatchTap(label, longPress = true)
     }
 
-    @SuppressLint("NewApi") // guarded by the SDK_INT check below
     private fun dispatchTap(label: LabeledNode, longPress: Boolean) {
+        dispatchTapAt(label.bounds.exactCenterX(), label.bounds.exactCenterY(), longPress)
+    }
+
+    @SuppressLint("NewApi") // guarded by the SDK_INT check below
+    private fun dispatchTapAt(x: Float, y: Float, longPress: Boolean) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return
-        val path = android.graphics.Path().apply {
-            moveTo(label.bounds.exactCenterX(), label.bounds.exactCenterY())
-        }
+        val path = android.graphics.Path().apply { moveTo(x, y) }
         // hold the touch down past the system's long-press threshold so it registers as a long click
         val duration = if (longPress) {
             (android.view.ViewConfiguration.getLongPressTimeout() + 100).toLong()

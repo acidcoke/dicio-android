@@ -21,6 +21,7 @@
     <string-array name="va_command_grammar">
         <item>tippe</item><item>tipp</item><item>drücke</item><item>drück</item>
         <item>wähle</item><item>wähl</item><item>klicke</item><item>klick</item>
+        <item>maus</item>
         <item>gehe</item><item>geh</item><item>zurück</item>
         <item>zum</item><item>startbildschirm</item>
         <item>scrolle</item><item>scroll</item><item>fahre</item><item>fahr</item>

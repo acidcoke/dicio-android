@@ -86,6 +86,11 @@ skills:
           - id: number
             type: string
 
+  - id: mouse_click
+    specificity: high
+    sentences:
+      - id: click
+
   - id: stop_listening
     specificity: high
     sentences:
