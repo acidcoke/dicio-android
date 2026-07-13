@@ -1,22 +1,21 @@
 scroll_up:
-  - scroll|go|move up|upward<s?>
+  - scroll|go up
   - page up
 
 scroll_down:
-  - scroll|go|move down|downward<s?>
-  - page down
+  - scroll|go down
 
 scroll_left:
-  - scroll|go|move left
+  - scroll|go left
 
 scroll_right:
-  - scroll|go|move right
+  - scroll|go right
 
 swipe_up:
-  - swipe|flick up|upward<s?>
+  - swipe|flick up
 
 swipe_down:
-  - swipe|flick down|downward<s?>
+  - swipe|flick down
 
 swipe_left:
   - swipe|flick left

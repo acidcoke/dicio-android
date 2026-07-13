@@ -1,5 +1,5 @@
 show:
-  - show|display|reveal|enable|(turn on) the? labels|numbers|grid|tags
+  - show numbers
 
 hide:
-  - hide|remove|disable|(turn off) the? labels|numbers|grid|tags
+  - hide numbers

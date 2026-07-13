@@ -1,5 +1,5 @@
 explicit:
-  - tap|click|press|select|choose|hit|touch|number|item|pick .number.
+  - tap|click|press|number .number.
 
 bare:
   - .number.

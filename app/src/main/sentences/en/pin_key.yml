@@ -1,5 +1,5 @@
 slot_a:
-  - press|tap|type? alfa|alpha
+  - press|tap|type? alpha
 slot_b:
   - press|tap|type? bravo
 slot_c:
@@ -17,10 +17,10 @@ slot_h:
 slot_i:
   - press|tap|type? india
 slot_j:
-  - press|tap|type? juliett|juliet
+  - press|tap|type? juliet
 
 delete:
-  - delete|backspace|clear|remove
+  - delete
 
 enter:
-  - enter|confirm|submit|done|ok|accept
+  - enter
