@@ -1,3 +1,2 @@
 show:
-  - show|open|display|expand the? notifications|(notification (bar|shade|panel))
-  - pull|drag down the? notifications|(notification (bar|shade|panel))
+  - show|open the? notifications
