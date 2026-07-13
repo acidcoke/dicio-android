@@ -30,6 +30,7 @@
         <item>delete</item><item>backspace</item><item>clear</item><item>remove</item>
         <item>enter</item><item>confirm</item><item>submit</item><item>done</item>
         <item>ok</item><item>accept</item>
+        <item>shift</item><item>space</item>
         <item>stop</item><item>cancel</item><item>exit</item><item>quit</item>
         <item>dismiss</item><item>listening</item><item>voice</item><item>access</item>
         <item>never</item><item>mind</item>

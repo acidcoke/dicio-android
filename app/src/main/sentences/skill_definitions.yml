@@ -127,6 +127,12 @@ skills:
       - id: slot_j
       - id: delete
       - id: enter
+      - id: shift
+      - id: space
+      - id: hold_delete
+      - id: hold_enter
+      - id: hold_shift
+      - id: hold_space
 
   - id: scroll
     specificity: high

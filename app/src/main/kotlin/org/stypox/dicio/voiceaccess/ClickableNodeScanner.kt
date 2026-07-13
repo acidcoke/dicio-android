@@ -34,10 +34,24 @@ data class PinPad(
     val enterKey: PinKeyNode?,
 )
 
-/** The result of a single traversal: the numbered labels and, if any, the detected PIN pad. */
+/**
+ * The enter/delete/shift/space keys of a generic on-screen keyboard (IME), found whenever an IME
+ * window is showing — unlike [PinPad], this does not require a password field or an all-numeric
+ * layout, so it also covers normal text entry.
+ */
+data class KeyboardKeys(
+    val enterKey: PinKeyNode?,
+    val deleteKey: PinKeyNode?,
+    val shiftKey: PinKeyNode?,
+    val spaceKey: PinKeyNode?,
+)
+
+/** The result of a single traversal: the numbered labels and, if any, the detected PIN pad /
+ * generic keyboard keys. */
 data class ScanResult(
     val labels: List<LabeledNode>,
     val pinPad: PinPad?,
+    val keyboardKeys: KeyboardKeys?,
 )
 
 /**
@@ -52,11 +66,23 @@ object ClickableNodeScanner {
         "delete", "backspace", "clear", "löschen", "loeschen", "entfernen", "rücktaste", "ruecktaste",
     )
     private val ENTER_WORDS = setOf(
-        "enter", "ok", "done", "submit", "confirm", "go", "next",
+        "enter", "ok", "done", "submit", "confirm", "go", "next", "search", "send",
         "eingabe", "bestätigen", "bestaetigen", "fertig", "weiter",
+        // Gboard's enter key is named after the current IME action
+        "los", "suchen", "senden", "eingabetaste",
+    )
+    // matched by substring, not equality: Gboard renames the key with its state ("Großschreibetaste"
+    // → "Umschalttaste-Taste" once shifted, presumably more variants for caps lock)
+    private val SHIFT_STEMS = listOf(
+        "shift", "caps", "umschalt", "großschreib", "grossschreib",
+    )
+    private val SPACE_WORDS = setOf(
+        "space", "space bar", "spacebar", "leertaste", "leerzeichen",
     )
     private val DELETE_IDS = listOf("delete", "backspace")
     private val ENTER_IDS = listOf("enter", "done", "submit", "confirm")
+    private val SHIFT_IDS = listOf("shift")
+    private val SPACE_IDS = listOf("space", "spacebar")
 
     // require most of the ten digits before treating a keypad as a PIN pad
     private const val MIN_PIN_DIGITS = 8
@@ -76,13 +102,21 @@ object ClickableNodeScanner {
         // window we cannot read, e.g. banking photoTAN apps)
         val imeDigits = HashSet<Int>()
         var imeLetterKeys = 0
+        // enter/delete/shift/space keys found specifically inside an IME window, exposed whenever a
+        // keyboard is on screen (unlike deleteKey/enterKey above, which feed the PIN-pad-only path)
+        var imeEnterKey: PinKeyNode? = null
+        var imeDeleteKey: PinKeyNode? = null
+        var imeShiftKey: PinKeyNode? = null
+        var imeSpaceKey: PinKeyNode? = null
     }
 
     fun scan(windows: List<AccessibilityWindowInfo>): ScanResult {
         val acc = Accumulator()
+        var keyboardVisible = false
         for (window in windows) {
-            val root = window.root ?: continue
             val isIme = window.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD
+            if (isIme) keyboardVisible = true
+            val root = window.root ?: continue
             collectFrom(root, acc, isIme)
         }
         // a numeric-only on-screen keyboard (digits, no letters) signals a PIN/number entry even
@@ -102,7 +136,13 @@ object ClickableNodeScanner {
             null
         }
 
-        return ScanResult(labels, pinPad)
+        val keyboardKeys = if (keyboardVisible) {
+            KeyboardKeys(acc.imeEnterKey, acc.imeDeleteKey, acc.imeShiftKey, acc.imeSpaceKey)
+        } else {
+            null
+        }
+
+        return ScanResult(labels, pinPad, keyboardKeys)
     }
 
     private fun collectFrom(node: AccessibilityNodeInfo, acc: Accumulator, isIme: Boolean) {
@@ -150,6 +190,27 @@ object ClickableNodeScanner {
             acc.deleteKey = PinKeyNode(node, bounds)
         } else if (acc.enterKey == null && (low in ENTER_WORDS || ENTER_IDS.any { resId.contains(it) })) {
             acc.enterKey = PinKeyNode(node, bounds)
+        }
+        if (isIme) accumulateKeyboardKey(low, resId, node, bounds, acc)
+    }
+
+    /** Classifies an actionable IME-window node as the enter/delete/shift/space key of a generic
+     * on-screen keyboard, independent of PIN-pad detection. */
+    private fun accumulateKeyboardKey(
+        low: String,
+        resId: String,
+        node: AccessibilityNodeInfo,
+        bounds: Rect,
+        acc: Accumulator,
+    ) {
+        if (acc.imeDeleteKey == null && (low in DELETE_WORDS || DELETE_IDS.any { resId.contains(it) })) {
+            acc.imeDeleteKey = PinKeyNode(node, bounds)
+        } else if (acc.imeEnterKey == null && (low in ENTER_WORDS || ENTER_IDS.any { resId.contains(it) })) {
+            acc.imeEnterKey = PinKeyNode(node, bounds)
+        } else if (acc.imeShiftKey == null && (SHIFT_STEMS.any { low.contains(it) } || SHIFT_IDS.any { resId.contains(it) })) {
+            acc.imeShiftKey = PinKeyNode(node, bounds)
+        } else if (acc.imeSpaceKey == null && (low in SPACE_WORDS || SPACE_IDS.any { resId.contains(it) })) {
+            acc.imeSpaceKey = PinKeyNode(node, bounds)
         }
     }
 

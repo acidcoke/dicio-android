@@ -24,3 +24,21 @@ delete:
 
 enter:
   - eingabe|bestätigen|fertig|ok|enter
+
+shift:
+  - umschalt|umschalttaste|shift
+
+space:
+  - leertaste|leerzeichen|space
+
+hold_delete:
+  - halte<e?>|(lange drück<e?>) löschen|entfernen|rücktaste
+
+hold_enter:
+  - halte<e?>|(lange drück<e?>) eingabe|enter
+
+hold_shift:
+  - halte<e?>|(lange drück<e?>) umschalt|umschalttaste|shift
+
+hold_space:
+  - halte<e?>|(lange drück<e?>) leertaste|leerzeichen|space

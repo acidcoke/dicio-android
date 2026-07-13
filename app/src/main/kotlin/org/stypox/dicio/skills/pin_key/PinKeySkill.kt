@@ -40,30 +40,42 @@ class PinKeySkill(
 
     override fun score(ctx: SkillContext, input: String): Pair<Score, PinKey> {
         val service = VoiceAccessService.instance
-        // these phonetic / "delete" / "enter" words are common; only ever match while a PIN pad is up
-        if (service?.isPinModeActive() != true) {
-            pendingChain = null
-            val (_, result) = super.score(ctx, input)
-            return Pair(AlwaysWorstScore, result)
+
+        // the phonetic slot chain only ever makes sense while a numeric PIN pad is up
+        if (service?.isPinModeActive() == true) {
+            return when (val parsed = parse(ctx, service, input)) {
+                is ParseResult.Chain -> {
+                    pendingChain = parsed.actions
+                    Pair(AlwaysBestScore, parsed.actions.first().toPinKey())
+                }
+                // claim the utterance (beating scroll/back/… too) so a mixed command is ignored
+                ParseResult.Suppress -> {
+                    pendingChain = emptyList()
+                    Pair(AlwaysBestScore, PinKey.Enter)
+                }
+                // single key, lone delete, pure foreign command, or ambiguous: standard wins
+                ParseResult.Defer -> {
+                    pendingChain = null
+                    super.score(ctx, input)
+                }
+            }
         }
 
-        return when (val parsed = parse(ctx, service, input)) {
-            is ParseResult.Chain -> {
-                pendingChain = parsed.actions
-                Pair(AlwaysBestScore, parsed.actions.first().toPinKey())
-            }
-            // claim the utterance (beating scroll/back/… too) so a mixed command is ignored entirely
-            ParseResult.Suppress -> {
-                pendingChain = emptyList()
-                Pair(AlwaysBestScore, PinKey.Enter)
-            }
-            // single key, lone delete, pure foreign command, or ambiguous: standard recognizer wins
-            ParseResult.Defer -> {
-                pendingChain = null
-                super.score(ctx, input)
-            }
+        pendingChain = null
+        val (score, result) = super.score(ctx, input)
+        // outside PIN mode, only the plain enter/delete/shift/space keys of a generic on-screen
+        // keyboard are valid (the phonetic slot words are common; don't let them match here)
+        return if (service?.isKeyboardActive() == true && result.isKeyboardKey()) {
+            Pair(score, result)
+        } else {
+            Pair(AlwaysWorstScore, result)
         }
     }
+
+    private fun PinKey.isKeyboardKey(): Boolean =
+        this is PinKey.Enter || this is PinKey.Delete || this is PinKey.Shift || this is PinKey.Space ||
+            this is PinKey.HoldDelete || this is PinKey.HoldEnter ||
+            this is PinKey.HoldShift || this is PinKey.HoldSpace
 
     /**
      * Classifies [input] (only called while a PIN pad is up):
@@ -138,8 +150,14 @@ class PinKeySkill(
             PinKey.SlotH -> service.clickPinSlot(7)
             PinKey.SlotI -> service.clickPinSlot(8)
             PinKey.SlotJ -> service.clickPinSlot(9)
-            PinKey.Delete -> service.clickPinDelete()
-            PinKey.Enter -> service.clickPinEnter()
+            PinKey.Delete -> if (service.isPinModeActive()) service.clickPinDelete() else service.clickKeyboardDelete()
+            PinKey.Enter -> if (service.isPinModeActive()) service.clickPinEnter() else service.clickKeyboardEnter()
+            PinKey.Shift -> service.clickKeyboardShift()
+            PinKey.Space -> service.clickKeyboardSpace()
+            PinKey.HoldDelete -> service.holdKeyboardDelete()
+            PinKey.HoldEnter -> service.holdKeyboardEnter()
+            PinKey.HoldShift -> service.holdKeyboardShift()
+            PinKey.HoldSpace -> service.holdKeyboardSpace()
         }
         return if (pressed) PinKeyOutput.Pressed else PinKeyOutput.NoKey
     }

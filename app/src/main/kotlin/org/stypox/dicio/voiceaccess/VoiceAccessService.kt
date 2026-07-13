@@ -70,6 +70,14 @@ class VoiceAccessService : AccessibilityService() {
     private var pinDeleteNode: LabeledNode? = null
     private var pinEnterNode: LabeledNode? = null
 
+    // ---- generic keyboard mode: enter/delete/shift/space labels over any on-screen keyboard ----
+    // resolved per scan: only populated while labelsVisible, and never alongside PIN mode (which
+    // already exposes its own delete/enter through pinDeleteNode/pinEnterNode above)
+    private var keyboardEnterNode: LabeledNode? = null
+    private var keyboardDeleteNode: LabeledNode? = null
+    private var keyboardShiftNode: LabeledNode? = null
+    private var keyboardSpaceNode: LabeledNode? = null
+
     // Resources forced to the app/Vosk locale (LocaleManager), NOT the service's system locale:
     // the PIN labels and the recognition grammar must match the language of the loaded Vosk model,
     // otherwise the words drawn on screen are out-of-grammar and nothing is recognized.
@@ -90,6 +98,8 @@ class VoiceAccessService : AccessibilityService() {
     private val pinWords: Array<String> get() = localeResources.getStringArray(R.array.va_pin_words)
     private val pinDeleteLabel: String get() = localeResources.getString(R.string.va_pin_delete)
     private val pinEnterLabel: String get() = localeResources.getString(R.string.va_pin_enter)
+    private val keyboardShiftLabel: String get() = localeResources.getString(R.string.va_keyboard_shift)
+    private val keyboardSpaceLabel: String get() = localeResources.getString(R.string.va_keyboard_space)
 
     // global command words still allowed while a PIN pad is up (go back/home, scroll, stop, …)
     private val commandGrammarWords: List<String>
@@ -350,7 +360,7 @@ class VoiceAccessService : AccessibilityService() {
                 ClickableNodeScanner.scan(windowList)
             } catch (t: Throwable) {
                 Log.e(TAG, "Failed to scan clickable nodes", t)
-                ScanResult(emptyList(), null)
+                ScanResult(emptyList(), null, null)
             }
             withContext(Dispatchers.Main) { renderScan(result) }
             scanInProgress.set(false)
@@ -367,11 +377,21 @@ class VoiceAccessService : AccessibilityService() {
 
         val pad = result.pinPad
         if (pad != null) {
+            clearKeyboardKeys()
             renderPinLabels(pad, result.labels)
             return
         }
         // no PIN pad on screen: leave PIN mode so it reshuffles next time, then numbered labels
         if (pinModeActive) exitPinMode()
+
+        val keys = result.keyboardKeys
+        if (labelsVisible && keys != null &&
+            (keys.enterKey != null || keys.deleteKey != null || keys.shiftKey != null || keys.spaceKey != null)
+        ) {
+            renderKeyboardKeys(keys, result.labels)
+            return
+        }
+        clearKeyboardKeys()
 
         if (labelsVisible) {
             labeledNodes = result.labels
@@ -380,6 +400,52 @@ class VoiceAccessService : AccessibilityService() {
             labeledNodes = emptyList()
             removeLabelOverlay()
         }
+    }
+
+    /**
+     * Builds and draws the enter/delete/shift/space labels for a generic on-screen keyboard (not a
+     * numeric PIN pad). Only called while [labelsVisible], unlike PIN-pad labels which are always
+     * shown regardless of the user's label toggle.
+     */
+    private fun renderKeyboardKeys(keys: KeyboardKeys, allLabels: List<LabeledNode>) {
+        val nodes = ArrayList<LabeledNode>()
+        val keyBounds = HashSet<Rect>()
+
+        keyboardEnterNode = keys.enterKey?.let {
+            LabeledNode(KB_NUM_ENTER, it.node, it.bounds, pinEnterLabel, centered = true)
+        }
+        keyboardEnterNode?.let { nodes.add(it); keyBounds.add(it.bounds) }
+
+        keyboardDeleteNode = keys.deleteKey?.let {
+            LabeledNode(KB_NUM_DELETE, it.node, it.bounds, pinDeleteLabel, centered = true)
+        }
+        keyboardDeleteNode?.let { nodes.add(it); keyBounds.add(it.bounds) }
+
+        keyboardShiftNode = keys.shiftKey?.let {
+            LabeledNode(KB_NUM_SHIFT, it.node, it.bounds, keyboardShiftLabel, centered = true)
+        }
+        keyboardShiftNode?.let { nodes.add(it); keyBounds.add(it.bounds) }
+
+        keyboardSpaceNode = keys.spaceKey?.let {
+            LabeledNode(KB_NUM_SPACE, it.node, it.bounds, keyboardSpaceLabel, centered = true)
+        }
+        keyboardSpaceNode?.let { nodes.add(it); keyBounds.add(it.bounds) }
+
+        val numbered = allLabels.asSequence()
+            .filter { it.bounds !in keyBounds }
+            .mapIndexed { i, l -> LabeledNode(i + 1, l.node, l.bounds) }
+            .toList()
+        labeledNodes = numbered
+        nodes.addAll(numbered)
+
+        showOverlayLabels(nodes)
+    }
+
+    private fun clearKeyboardKeys() {
+        keyboardEnterNode = null
+        keyboardDeleteNode = null
+        keyboardShiftNode = null
+        keyboardSpaceNode = null
     }
 
     /**
@@ -531,6 +597,48 @@ class VoiceAccessService : AccessibilityService() {
         return true
     }
 
+    // ---------------------------------------------------------------- generic keyboard mode
+
+    /** Whether a generic on-screen keyboard's enter/delete/shift/space keys are currently labeled
+     * (a soft keyboard is up, labels are enabled, and at least one such key was found). */
+    fun isKeyboardActive(): Boolean =
+        keyboardEnterNode != null || keyboardDeleteNode != null ||
+            keyboardShiftNode != null || keyboardSpaceNode != null
+
+    // Keyboard keys are pressed with tap gestures at their bounds instead of ACTION_CLICK: Gboard's
+    // virtual key nodes accept the accessibility action but don't reliably act on it (e.g. tapping
+    // shift while caps lock is engaged does nothing), while real touches always work.
+
+    fun clickKeyboardEnter(): Boolean = tapKeyboardKey(keyboardEnterNode, longPress = false)
+
+    fun clickKeyboardDelete(): Boolean = tapKeyboardKey(keyboardDeleteNode, longPress = false)
+
+    fun clickKeyboardShift(): Boolean = tapKeyboardKey(keyboardShiftNode, longPress = false)
+
+    fun clickKeyboardSpace(): Boolean = tapKeyboardKey(keyboardSpaceNode, longPress = false)
+
+    fun holdKeyboardEnter(): Boolean = tapKeyboardKey(keyboardEnterNode, longPress = true)
+
+    fun holdKeyboardDelete(): Boolean = tapKeyboardKey(keyboardDeleteNode, longPress = true)
+
+    /** Double-taps shift, which is how Gboard (and most keyboards) engages caps lock — a
+     * long-press on shift does nothing there. */
+    fun holdKeyboardShift(): Boolean {
+        val target = keyboardShiftNode ?: return false
+        runOnMain {
+            dispatchDoubleTapAt(target.bounds.exactCenterX(), target.bounds.exactCenterY())
+        }
+        return true
+    }
+
+    fun holdKeyboardSpace(): Boolean = tapKeyboardKey(keyboardSpaceNode, longPress = true)
+
+    private fun tapKeyboardKey(target: LabeledNode?, longPress: Boolean): Boolean {
+        val bounds = (target ?: return false).bounds
+        runOnMain { dispatchTapAt(bounds.exactCenterX(), bounds.exactCenterY(), longPress) }
+        return true
+    }
+
     private fun performClick(label: LabeledNode) = performClick(label.node, label.bounds)
 
     private fun performLongClick(label: LabeledNode) = performLongClick(label.node, label.bounds)
@@ -579,12 +687,27 @@ class VoiceAccessService : AccessibilityService() {
         dispatchGesture(gesture, null, null)
     }
 
+    /** Two quick taps at (x, y), fast enough to register as a double tap (e.g. caps lock on shift). */
+    @SuppressLint("NewApi") // guarded by the SDK_INT check below
+    private fun dispatchDoubleTapAt(x: Float, y: Float) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return
+        val firstTap = android.graphics.Path().apply { moveTo(x, y) }
+        val secondTap = android.graphics.Path().apply { moveTo(x, y) }
+        val gesture = android.accessibilityservice.GestureDescription.Builder()
+            .addStroke(android.accessibilityservice.GestureDescription.StrokeDescription(firstTap, 0, 50))
+            .addStroke(android.accessibilityservice.GestureDescription.StrokeDescription(secondTap, 150, 50))
+            .build()
+        dispatchGesture(gesture, null, null)
+    }
+
     // ---------------------------------------------------------------- listening bar
 
     /** The closed command set the grammar recognizer is constrained to for the whole session: the
      * phonetic PIN words, the delete/enter captions and all non-dictation command words. */
     private fun fullCommandGrammar(): List<String> =
-        pinWords.toList() + listOf(pinDeleteLabel, pinEnterLabel) + commandGrammarWords
+        pinWords.toList() +
+            listOf(pinDeleteLabel, pinEnterLabel, keyboardShiftLabel, keyboardSpaceLabel) +
+            commandGrammarWords
 
     fun showListening() = runOnMain {
         sessionActive = true
@@ -627,6 +750,7 @@ class VoiceAccessService : AccessibilityService() {
         removeLabelOverlay()
         // forget any PIN shuffle so the pad reshuffles next session it appears
         exitPinMode()
+        clearKeyboardKeys()
     }
 
     // ---------------------------------------------------------------- continue/stop confirmation
@@ -780,6 +904,11 @@ class VoiceAccessService : AccessibilityService() {
         // sentinel LabeledNode.number values for the PIN-pad delete/enter keys (not real slots)
         private const val PIN_NUM_DELETE = -1
         private const val PIN_NUM_ENTER = -2
+        // sentinel LabeledNode.number values for the generic keyboard's enter/delete/shift/space keys
+        private const val KB_NUM_ENTER = -3
+        private const val KB_NUM_DELETE = -4
+        private const val KB_NUM_SHIFT = -5
+        private const val KB_NUM_SPACE = -6
 
         @Volatile
         var instance: VoiceAccessService? = null

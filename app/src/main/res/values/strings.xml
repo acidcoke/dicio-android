@@ -248,6 +248,8 @@
     <string name="skill_sentence_example_pin_key">Charlie</string>
     <string name="va_pin_delete">delete</string>
     <string name="va_pin_enter">enter</string>
+    <string name="va_keyboard_shift">shift</string>
+    <string name="va_keyboard_space">space</string>
     <string name="skill_pin_key_pressed">Pressed</string>
     <string name="skill_pin_key_no_key">That key isn\'t here</string>
     <string name="skill_pin_key_service_disabled">Voice Access is not enabled</string>

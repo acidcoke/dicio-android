@@ -24,3 +24,21 @@ delete:
 
 enter:
   - enter
+
+shift:
+  - shift
+
+space:
+  - space
+
+hold_delete:
+  - hold|(long press) delete
+
+hold_enter:
+  - hold|(long press) enter
+
+hold_shift:
+  - hold|(long press) shift
+
+hold_space:
+  - hold|(long press) space
