@@ -1,26 +1,26 @@
 slot_a:
-  - tipp<e?>|dr<ü|ue>ck<e?>|w<ä|ae>hl<e?>? anton
+  - tipp<e?>|drück<e?>|wähl<e?>? anton
 slot_b:
-  - tipp<e?>|dr<ü|ue>ck<e?>|w<ä|ae>hl<e?>? berta
+  - tipp<e?>|drück<e?>|wähl<e?>? berta
 slot_c:
-  - tipp<e?>|dr<ü|ue>ck<e?>|w<ä|ae>hl<e?>? c<ä|ae>sar
+  - tipp<e?>|drück<e?>|wähl<e?>? cäsar
 slot_d:
-  - tipp<e?>|dr<ü|ue>ck<e?>|w<ä|ae>hl<e?>? dora
+  - tipp<e?>|drück<e?>|wähl<e?>? dora
 slot_e:
-  - tipp<e?>|dr<ü|ue>ck<e?>|w<ä|ae>hl<e?>? emil
+  - tipp<e?>|drück<e?>|wähl<e?>? emil
 slot_f:
-  - tipp<e?>|dr<ü|ue>ck<e?>|w<ä|ae>hl<e?>? friedrich
+  - tipp<e?>|drück<e?>|wähl<e?>? friedrich
 slot_g:
-  - tipp<e?>|dr<ü|ue>ck<e?>|w<ä|ae>hl<e?>? gustav
+  - tipp<e?>|drück<e?>|wähl<e?>? gustav
 slot_h:
-  - tipp<e?>|dr<ü|ue>ck<e?>|w<ä|ae>hl<e?>? heinrich
+  - tipp<e?>|drück<e?>|wähl<e?>? heinrich
 slot_i:
-  - tipp<e?>|dr<ü|ue>ck<e?>|w<ä|ae>hl<e?>? ida
+  - tipp<e?>|drück<e?>|wähl<e?>? ida
 slot_j:
-  - tipp<e?>|dr<ü|ue>ck<e?>|w<ä|ae>hl<e?>? julius
+  - tipp<e?>|drück<e?>|wähl<e?>? julius
 
 delete:
-  - l<ö|oe>schen|entfernen|r<ü|ue>cktaste
+  - löschen|entfernen|rücktaste
 
 enter:
-  - eingabe|best<ä|ae>tigen|fertig|ok|enter
+  - eingabe|bestätigen|fertig|ok|enter
