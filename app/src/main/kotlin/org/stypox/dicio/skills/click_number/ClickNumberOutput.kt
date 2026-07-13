@@ -11,6 +11,11 @@ sealed interface ClickNumberOutput : HeadlineSpeechSkillOutput {
             ctx.getString(R.string.skill_click_number_tapped, number)
     }
 
+    data class Held(private val number: Int) : ClickNumberOutput {
+        override fun getSpeechOutput(ctx: SkillContext): String =
+            ctx.getString(R.string.skill_click_number_held, number)
+    }
+
     data class NoLabel(private val number: Int) : ClickNumberOutput {
         override fun getSpeechOutput(ctx: SkillContext): String =
             ctx.getString(R.string.skill_click_number_no_label, number)

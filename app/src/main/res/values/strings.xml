@@ -219,6 +219,7 @@
     <string name="skill_name_click_number">Tap a number</string>
     <string name="skill_sentence_example_click_number">Tap 5</string>
     <string name="skill_click_number_tapped">Tapped %1$d</string>
+    <string name="skill_click_number_held">Held %1$d</string>
     <string name="skill_click_number_no_label">There is no label %1$d</string>
     <string name="skill_click_number_could_not_understand">Which number?</string>
     <string name="skill_click_number_service_disabled">Voice Access is not enabled</string>

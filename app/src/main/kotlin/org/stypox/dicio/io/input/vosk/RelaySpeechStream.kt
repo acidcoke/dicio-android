@@ -26,6 +26,9 @@ import kotlin.math.roundToInt
  *    timestamp** is re-decoded by a **free** recognizer, and the result is emitted as
  *    `"<trigger> <free tail>"`. The grammar's own (force-fit) tail is discarded, so e.g. "open
  *    signal" is no longer mangled into "open second".
+ *  - For the subset of triggers in [fullDecodeTriggers] (e.g. "open"), even the trigger word itself
+ *    is discarded: the **entire buffered utterance**, from the start, is re-decoded by the free
+ *    recognizer and emitted as-is, with no grammar-recognized prefix.
  *
  * There is exactly one [AudioRecord]; the free recognizer is only ever fed buffered audio, so it
  * adds no extra live decoding and runs solely on trigger utterances.
@@ -38,6 +41,7 @@ class RelaySpeechStream(
     private val sampleRate: Int,
     private val grammarJson: String,
     private val dictationTriggers: Set<String>,
+    private val fullDecodeTriggers: Set<String>,
     private val maxAlternatives: Int,
 ) : SpeechStream {
 
@@ -154,9 +158,10 @@ class RelaySpeechStream(
 
         /**
          * Turns the grammar recognizer's final result into the JSON handed to [VoskListener]. If the
-         * first word is a [dictationTriggers] word, the buffered audio after that word is re-decoded
-         * by [freeRec] and emitted as `"<trigger> <tail>"`; otherwise the constrained grammar text is
-         * emitted as-is.
+         * first word is a [fullDecodeTriggers] word, the entire buffered utterance is re-decoded by
+         * [freeRec] and emitted as-is. Else if it's a [dictationTriggers] word, only the buffered
+         * audio after that word is re-decoded and emitted as `"<trigger> <tail>"`. Otherwise the
+         * constrained grammar text is emitted as-is.
          */
         private fun buildResult(grammarResultJson: String, freeRec: Recognizer): String {
             val obj = try {
@@ -168,6 +173,10 @@ class RelaySpeechStream(
             val words = obj.optJSONArray("result")
             val first = words?.optJSONObject(0)
             val firstWord = first?.optString("word")?.lowercase()?.takeIf { it.isNotBlank() }
+
+            if (firstWord != null && firstWord in fullDecodeTriggers) {
+                return fullDecodeResult(decodeTail(freeRec, 0))
+            }
 
             if (firstWord != null && firstWord in dictationTriggers) {
                 val endSec = first.optDouble("end", 0.0)
@@ -229,6 +238,18 @@ class RelaySpeechStream(
         }
         tailAlts.forEach { (tail, confidence) -> add("$trigger $tail".trim(), confidence) }
         if (alternatives.length() == 0) add(trigger, 1.0)
+        return JSONObject().put("alternatives", alternatives).toString()
+    }
+
+    /** Builds the merged result for a [fullDecodeTriggers] utterance: the free-decoded alternatives
+     *  as-is, with no grammar-recognized prefix. */
+    private fun fullDecodeResult(alts: List<Pair<String, Double>>): String {
+        val alternatives = JSONArray()
+        alts.forEach { (text, confidence) ->
+            if (text.isNotBlank()) {
+                alternatives.put(JSONObject().put("text", text).put("confidence", confidence))
+            }
+        }
         return JSONObject().put("alternatives", alternatives).toString()
     }
 

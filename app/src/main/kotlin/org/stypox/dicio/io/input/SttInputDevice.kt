@@ -22,8 +22,15 @@ interface SttInputDevice {
      * utterance is dictated free-form: when the constrained recognizer hears one as the first word,
      * the audio after it is re-decoded without the grammar so the argument is not force-fit onto a
      * grammar word. The trigger words must also appear in [grammar] to be recognizable.
+     *
+     * [fullDecodeTriggers] (a subset of [dictationTriggers]) additionally re-decodes the trigger word
+     * itself: the whole utterance is re-decoded free-form instead of only the tail after the trigger.
      */
-    fun setRecognitionGrammar(grammar: List<String>?, dictationTriggers: List<String> = emptyList()) {}
+    fun setRecognitionGrammar(
+        grammar: List<String>?,
+        dictationTriggers: List<String> = emptyList(),
+        fullDecodeTriggers: List<String> = emptyList(),
+    ) {}
 
     suspend fun destroy()
 

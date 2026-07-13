@@ -33,13 +33,20 @@ class ClickNumberSkill(
 
         val numberText = when (inputData) {
             is ClickNumber.Explicit -> inputData.number
+            is ClickNumber.Hold -> inputData.number
             is ClickNumber.Bare -> inputData.number
         }
 
         val number = parseNumber(ctx, numberText)
             ?: return ClickNumberOutput.CouldNotUnderstand
 
-        return if (service.clickLabel(number)) {
+        return if (inputData is ClickNumber.Hold) {
+            if (service.longClickLabel(number)) {
+                ClickNumberOutput.Held(number)
+            } else {
+                ClickNumberOutput.NoLabel(number)
+            }
+        } else if (service.clickLabel(number)) {
             ClickNumberOutput.Tapped(number)
         } else {
             ClickNumberOutput.NoLabel(number)

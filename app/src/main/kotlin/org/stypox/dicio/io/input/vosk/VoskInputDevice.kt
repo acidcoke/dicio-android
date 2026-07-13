@@ -91,6 +91,7 @@ class VoskInputDevice(
     // loaded model kept around so the recognizer can be rebuilt with a new grammar without reloading
     @Volatile private var grammar: List<String>? = null
     @Volatile private var dictationTriggers: List<String> = emptyList()
+    @Volatile private var fullDecodeTriggers: List<String> = emptyList()
     @Volatile private var loadedModel: Model? = null
 
     init {
@@ -449,11 +450,18 @@ class VoskInputDevice(
         }
     }
 
-    override fun setRecognitionGrammar(grammar: List<String>?, dictationTriggers: List<String>) {
+    override fun setRecognitionGrammar(
+        grammar: List<String>?,
+        dictationTriggers: List<String>,
+        fullDecodeTriggers: List<String>,
+    ) {
         val normalized = grammar?.takeIf { it.isNotEmpty() }
-        if (this.grammar == normalized && this.dictationTriggers == dictationTriggers) return
+        if (this.grammar == normalized && this.dictationTriggers == dictationTriggers &&
+            this.fullDecodeTriggers == fullDecodeTriggers
+        ) return
         this.grammar = normalized
         this.dictationTriggers = dictationTriggers
+        this.fullDecodeTriggers = fullDecodeTriggers
         scope.launch { applyGrammar() }
     }
 
@@ -503,6 +511,7 @@ class VoskInputDevice(
                 // the trigger words must be recognizable, so add them to the grammar vocabulary
                 grammarJson = toGrammarJson(currentGrammar + triggers),
                 dictationTriggers = triggers.toSet(),
+                fullDecodeTriggers = fullDecodeTriggers.map { it.lowercase() }.toSet(),
                 maxAlternatives = ALTERNATIVE_COUNT,
             )
         } else {

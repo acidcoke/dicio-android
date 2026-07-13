@@ -77,6 +77,10 @@ skills:
         captures:
           - id: number
             type: string
+      - id: hold
+        captures:
+          - id: number
+            type: string
       - id: bare
         captures:
           - id: number

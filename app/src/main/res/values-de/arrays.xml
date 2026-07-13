@@ -152,4 +152,11 @@
         <item>regnet</item><item>schneit</item><item>hagelt</item>
         <item>scheint</item><item>wetter</item>
     </string-array>
+
+    <!-- Teilmenge von va_dictation_triggers, deren GESAMTE Äußerung (inklusive des Trigger-Worts
+         selbst) mit dem freien Erkenner neu dekodiert wird, statt nur der Rest nach dem Trigger.
+         Nur öffne/oeffne, da starte/zeige/zeig auch außerhalb von "öffnen" verwendet werden. -->
+    <string-array name="va_full_decode_triggers">
+        <item>öffne</item><item>oeffne</item>
+    </string-array>
 </resources>

@@ -115,4 +115,12 @@
         <!-- weather (question words like what/how/is are kept constrained, not triggers) -->
         <item>weather</item>
     </string-array>
+
+    <!-- Subset of va_dictation_triggers whose ENTIRE utterance (including the trigger word itself)
+         is re-decoded by the free recognizer, instead of only the tail after the trigger. Used for
+         "open", where app names must not be force-fit and the trigger word carries no useful
+         grammar-side reliability worth keeping over the free recognizer's own accuracy. -->
+    <string-array name="va_full_decode_triggers">
+        <item>open</item>
+    </string-array>
 </resources>

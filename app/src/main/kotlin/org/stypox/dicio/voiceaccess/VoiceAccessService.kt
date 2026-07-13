@@ -100,6 +100,11 @@ class VoiceAccessService : AccessibilityService() {
     private val dictationTriggers: List<String>
         get() = localeResources.getStringArray(R.array.va_dictation_triggers).toList()
 
+    // subset of dictationTriggers ("open") whose entire utterance, trigger word included, is
+    // re-decoded free-form instead of just the tail (see RelaySpeechStream)
+    private val fullDecodeTriggers: List<String>
+        get() = localeResources.getStringArray(R.array.va_full_decode_triggers).toList()
+
     private val localeManager: LocaleManager by lazy {
         EntryPointAccessors
             .fromApplication(applicationContext, LocaleManagerModule::class.java)
@@ -460,6 +465,19 @@ class VoiceAccessService : AccessibilityService() {
         return true
     }
 
+    /**
+     * Long-clicks (holds) the element labelled [number]. Falls back to a long-clickable ancestor,
+     * then to a long-press gesture at the element's center if the node itself does not accept
+     * ACTION_LONG_CLICK.
+     *
+     * @return true if a label with that number existed and a long click was dispatched
+     */
+    fun longClickLabel(number: Int): Boolean {
+        val target = labeledNodes.firstOrNull { it.number == number } ?: return false
+        runOnMain { performLongClick(target) }
+        return true
+    }
+
     // ---------------------------------------------------------------- PIN mode
 
     /** Whether a numeric PIN pad is currently being shown with phonetic-word labels. */
@@ -499,17 +517,37 @@ class VoiceAccessService : AccessibilityService() {
             node = node.parent
         }
         // last resort: tap at the center of the element's bounds
-        dispatchTap(label)
+        dispatchTap(label, longPress = false)
+    }
+
+    private fun performLongClick(label: LabeledNode) {
+        var node: AccessibilityNodeInfo? = label.node
+        while (node != null) {
+            if (node.isLongClickable &&
+                node.performAction(AccessibilityNodeInfo.ACTION_LONG_CLICK)
+            ) {
+                return
+            }
+            node = node.parent
+        }
+        // last resort: a long-press gesture at the center of the element's bounds
+        dispatchTap(label, longPress = true)
     }
 
     @SuppressLint("NewApi") // guarded by the SDK_INT check below
-    private fun dispatchTap(label: LabeledNode) {
+    private fun dispatchTap(label: LabeledNode, longPress: Boolean) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return
         val path = android.graphics.Path().apply {
             moveTo(label.bounds.exactCenterX(), label.bounds.exactCenterY())
         }
+        // hold the touch down past the system's long-press threshold so it registers as a long click
+        val duration = if (longPress) {
+            (android.view.ViewConfiguration.getLongPressTimeout() + 100).toLong()
+        } else {
+            50L
+        }
         val gesture = android.accessibilityservice.GestureDescription.Builder()
-            .addStroke(android.accessibilityservice.GestureDescription.StrokeDescription(path, 0, 50))
+            .addStroke(android.accessibilityservice.GestureDescription.StrokeDescription(path, 0, duration))
             .build()
         dispatchGesture(gesture, null, null)
     }
@@ -525,7 +563,7 @@ class VoiceAccessService : AccessibilityService() {
         sessionActive = true
         // constrain recognition to the command set; free-form dictation kicks in only after a
         // trigger word (open/search/…) — see RelaySpeechStream
-        sttInputDevice.setRecognitionGrammar(fullCommandGrammar(), dictationTriggers)
+        sttInputDevice.setRecognitionGrammar(fullCommandGrammar(), dictationTriggers, fullDecodeTriggers)
         val wm = windowManager ?: return@runOnMain
         if (listeningBar == null) {
             val view = ListeningBarView(localeContext)
