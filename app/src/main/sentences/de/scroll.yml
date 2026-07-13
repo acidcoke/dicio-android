@@ -27,3 +27,15 @@ swipe_left:
 
 swipe_right:
   - w<i|ä>sch<e?>|zieh<e?>|sie nach rechts
+
+flick_up:
+  - schleuder<e?> (nach oben)|hoch|rauf
+
+flick_down:
+  - schleuder<e?> (nach unten)|runter|herunter
+
+flick_left:
+  - schleuder<e?> nach links
+
+flick_right:
+  - schleuder<e?> nach rechts

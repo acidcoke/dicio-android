@@ -130,6 +130,10 @@ skills:
       - id: swipe_down
       - id: swipe_left
       - id: swipe_right
+      - id: flick_up
+      - id: flick_down
+      - id: flick_left
+      - id: flick_right
 
   - id: listening
     specificity: high

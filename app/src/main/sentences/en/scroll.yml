@@ -12,13 +12,25 @@ scroll_right:
   - scroll|go right
 
 swipe_up:
-  - swipe|flick up
+  - swipe up
 
 swipe_down:
-  - swipe|flick down
+  - swipe down
 
 swipe_left:
-  - swipe|flick left
+  - swipe left
 
 swipe_right:
-  - swipe|flick right
+  - swipe right
+
+flick_up:
+  - flick up
+
+flick_down:
+  - flick down
+
+flick_left:
+  - flick left
+
+flick_right:
+  - flick right

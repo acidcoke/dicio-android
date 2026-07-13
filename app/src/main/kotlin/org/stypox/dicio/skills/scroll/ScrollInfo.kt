@@ -67,8 +67,8 @@ class ScrollInfo(val dataStore: DataStore<UserSettings>) : SkillInfo("scroll") {
         /** Swipe distance as a portion of the screen for each amount. */
         fun fractionFor(amount: ScrollAmount): Float = when (normalize(amount)) {
             ScrollAmount.SCROLL_AMOUNT_SHORT -> 0.25f
-            ScrollAmount.SCROLL_AMOUNT_LONG -> 0.75f
-            else -> 0.5f // MEDIUM
+            ScrollAmount.SCROLL_AMOUNT_LONG -> 0.5f // old MEDIUM value
+            else -> 0.375f // MEDIUM: midpoint of old SHORT (0.25) and old MEDIUM (0.5)
         }
     }
 }
