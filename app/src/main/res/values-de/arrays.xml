@@ -83,6 +83,10 @@
         <item>etikett</item><item>anzeigen</item><item>einblenden</item><item>aktivieren</item>
         <item>versteck</item><item>verstecke</item><item>deaktiviere</item><item>deaktivier</item>
         <item>aus</item><item>ausblenden</item><item>verstecken</item><item>deaktivieren</item>
+        <!-- Raster (die NATO-Synonyme stehen bereits in va_pin_words) -->
+        <item>raster</item><item>gitter</item>
+        <item>a</item><item>b</item><item>c</item><item>d</item>
+        <item>e</item><item>f</item><item>g</item><item>h</item>
         <!-- Zuhören starten/stoppen -->
         <item>starte</item><item>start</item><item>beginne</item><item>beginn</item>
         <item>fang</item><item>an</item><item>mache</item><item>mach</item>

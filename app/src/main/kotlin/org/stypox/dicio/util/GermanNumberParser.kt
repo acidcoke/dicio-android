@@ -1,4 +1,4 @@
-package org.stypox.dicio.skills.click_number
+package org.stypox.dicio.util
 
 /**
  * Minimal spelled-out German number parser for label selection (0..999).

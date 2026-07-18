@@ -70,6 +70,20 @@ skills:
       - id: show
       - id: hide
 
+  - id: grid
+    specificity: high
+    sentences:
+      - id: show
+      - id: hide
+      - id: press
+        captures:
+          - id: cell
+            type: string
+      - id: bare
+        captures:
+          - id: cell
+            type: string
+
   - id: click_number
     specificity: high
     sentences:

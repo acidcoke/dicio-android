@@ -55,6 +55,9 @@
         <!-- labels -->
         <item>show</item><item>display</item><item>reveal</item><item>labels</item>
         <item>numbers</item><item>grid</item><item>tags</item><item>hide</item>
+        <!-- grid columns (the NATO synonyms are already in va_pin_words) -->
+        <item>a</item><item>b</item><item>c</item><item>d</item>
+        <item>e</item><item>f</item><item>g</item><item>h</item>
         <!-- start/stop listening -->
         <item>start</item><item>wake</item><item>word</item><item>mute</item>
         <item>unmute</item><item>microphone</item>

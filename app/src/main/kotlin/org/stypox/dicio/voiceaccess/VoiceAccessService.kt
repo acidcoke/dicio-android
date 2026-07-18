@@ -48,12 +48,23 @@ class VoiceAccessService : AccessibilityService() {
     private var windowManager: WindowManager? = null
 
     private var labelOverlay: LabelOverlayView? = null
+    private var gridOverlay: GridOverlayView? = null
     private var listeningBar: ListeningBarView? = null
     private var confirmationOverlay: ConfirmationOverlayView? = null
 
     // whether the user wants labels shown; remembered across listening sessions
     @Volatile
     private var labelsVisible = false
+    // whether the user wants the coordinate grid shown; remembered across listening sessions and
+    // mutually exclusive with the numbered labels
+    @Volatile
+    private var gridVisible = false
+    // the cell currently split into a 3×3 refinement sub-grid, or null; session-scoped
+    @Volatile
+    private var subGridCell: Pair<Int, Int>? = null
+    // user-configured grid line/text opacity (0..1), kept in sync with the settings data store
+    @Volatile
+    private var gridOpacity = GridOverlayView.DEFAULT_OPACITY_PERCENT / 100f
     // whether a listening session is currently active (the overlay is only drawn while it is)
     @Volatile
     private var sessionActive = false
@@ -180,6 +191,15 @@ class VoiceAccessService : AccessibilityService() {
                     labelOverlay?.applyStyle(style)
                 }
         }
+        scope.launch {
+            dataStore.data
+                .map { it.gridOpacity.takeIf { pct -> pct != 0 } ?: GridOverlayView.DEFAULT_OPACITY_PERCENT }
+                .distinctUntilChanged()
+                .collect { percent ->
+                    gridOpacity = percent / 100f
+                    gridOverlay?.applyOpacity(gridOpacity)
+                }
+        }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -216,6 +236,7 @@ class VoiceAccessService : AccessibilityService() {
         removeListeningBar()
         removeConfirmationOverlay()
         removeLabelOverlay()
+        removeGridOverlay()
         stopListeningCallback = null
     }
 
@@ -281,6 +302,7 @@ class VoiceAccessService : AccessibilityService() {
     fun areLabelsVisible(): Boolean = labelsVisible
 
     fun showLabels() = runOnMain {
+        if (gridVisible) hideGrid()
         labelsVisible = true
         // polling runs for the whole session; just trigger an immediate refresh to draw them now
         if (sessionActive) refreshLabels()
@@ -569,6 +591,119 @@ class VoiceAccessService : AccessibilityService() {
         return true
     }
 
+    // ---------------------------------------------------------------- coordinate grid
+
+    /** What happened to a spoken grid cell reference, for spoken feedback. */
+    enum class GridCellResult { TAPPED, SUB_SHOWN, OUT_OF_RANGE }
+
+    /** Whether the grid overlay should currently react to spoken cell references. */
+    fun isGridActive(): Boolean = gridVisible && sessionActive
+
+    fun showGrid() = runOnMain {
+        // grid and numbered labels are mutually exclusive
+        labelsVisible = false
+        labeledNodes = emptyList()
+        gridVisible = true
+        subGridCell = null
+        if (sessionActive) {
+            refreshLabels()
+            addGridOverlay()
+        }
+    }
+
+    fun hideGrid() = runOnMain {
+        gridVisible = false
+        subGridCell = null
+        removeGridOverlay()
+    }
+
+    /**
+     * Handles a spoken cell reference like "a2" (0-based [col], 1-based [row]):
+     *  - while a 3×3 sub-grid is open, references within a–c/1–3 tap the sub-cell and dismiss the
+     *    sub-grid; references outside it fall through and re-anchor on the main grid;
+     *  - with [explicitPress] ("press a2") the main cell's center is tapped immediately;
+     *  - a bare reference opens the 3×3 refinement sub-grid inside the cell.
+     */
+    fun handleGridCell(col: Int, row: Int, explicitPress: Boolean): GridCellResult {
+        val geometry = currentGridGeometry()
+        val sub = subGridCell
+        if (sub != null && col < GridGeometry.SUB_DIVISIONS && row in 1..GridGeometry.SUB_DIVISIONS) {
+            subGridCell = null
+            val center = geometry.subCellCenter(sub, col, row - 1)
+            runOnMain {
+                updateGridOverlay()
+                dispatchTapAt(center.x, center.y, longPress = false)
+            }
+            return GridCellResult.TAPPED
+        }
+
+        if (col >= geometry.cols || row < 1 || row > geometry.rows) {
+            return GridCellResult.OUT_OF_RANGE
+        }
+
+        return if (explicitPress) {
+            subGridCell = null
+            val center = geometry.cellCenter(col, row - 1)
+            runOnMain {
+                updateGridOverlay()
+                dispatchTapAt(center.x, center.y, longPress = false)
+            }
+            GridCellResult.TAPPED
+        } else {
+            subGridCell = col to (row - 1)
+            runOnMain { updateGridOverlay() }
+            GridCellResult.SUB_SHOWN
+        }
+    }
+
+    /** Builds the geometry fresh from the real display size, so rotation self-heals. */
+    private fun currentGridGeometry(): GridGeometry {
+        val wm = windowManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && wm != null) {
+            val bounds = wm.currentWindowMetrics.bounds
+            return GridGeometry(bounds.width(), bounds.height())
+        }
+        val metrics = android.util.DisplayMetrics()
+        @Suppress("DEPRECATION")
+        wm?.defaultDisplay?.getRealMetrics(metrics)
+            ?: return GridGeometry(
+                resources.displayMetrics.widthPixels,
+                resources.displayMetrics.heightPixels,
+            )
+        return GridGeometry(metrics.widthPixels, metrics.heightPixels)
+    }
+
+    private fun addGridOverlay() {
+        val wm = windowManager ?: return
+        if (gridOverlay == null) {
+            val view = GridOverlayView(this)
+            view.applyOpacity(gridOpacity)
+            try {
+                wm.addView(view, labelOverlayParams())
+                gridOverlay = view
+            } catch (t: Throwable) {
+                Log.e(TAG, "Failed to add grid overlay", t)
+                return
+            }
+        }
+        updateGridOverlay()
+    }
+
+    private fun updateGridOverlay() {
+        gridOverlay?.setState(currentGridGeometry(), subGridCell)
+    }
+
+    private fun removeGridOverlay() {
+        gridOverlay?.let { view ->
+            try {
+                windowManager?.removeView(view)
+            } catch (t: Throwable) {
+                Log.w(TAG, "Failed to remove grid overlay", t)
+            }
+        }
+        gridOverlay = null
+    }
+
     // ---------------------------------------------------------------- PIN mode
 
     /** Whether a numeric PIN pad is currently being shown with phonetic-word labels. */
@@ -729,6 +864,8 @@ class VoiceAccessService : AccessibilityService() {
         // and to restore numbered labels if the user had them on in a previous session
         refreshLabels()
         startLabelPolling()
+        // restore the grid if the user had it on in a previous session
+        if (gridVisible) addGridOverlay()
     }
 
     fun updateTranscript(text: String, isFinal: Boolean) = runOnMain {
@@ -746,8 +883,11 @@ class VoiceAccessService : AccessibilityService() {
         stopLabelPolling()
         removeListeningBar()
         removeConfirmationOverlay()
-        // pause the overlay only; labelsVisible (the user's intent) is intentionally kept
+        // pause the overlays only; labelsVisible/gridVisible (the user's intent) are kept, but the
+        // sub-grid refinement is session-scoped and forgotten
         removeLabelOverlay()
+        removeGridOverlay()
+        subGridCell = null
         // forget any PIN shuffle so the pad reshuffles next session it appears
         exitPinMode()
         clearKeyboardKeys()

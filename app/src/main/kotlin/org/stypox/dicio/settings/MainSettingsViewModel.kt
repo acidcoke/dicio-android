@@ -183,6 +183,8 @@ class MainSettingsViewModel @Inject constructor(
         updateData { it.setLabelOpacity(value) }
     fun setLabelContrast(value: Int) =
         updateData { it.setLabelContrast(value) }
+    fun setGridOpacity(value: Int) =
+        updateData { it.setGridOpacity(value) }
     fun setLabelTheme(value: LabelTheme) =
         updateData { it.setLabelTheme(value) }
     fun setListeningDuration(value: ListeningDuration) =

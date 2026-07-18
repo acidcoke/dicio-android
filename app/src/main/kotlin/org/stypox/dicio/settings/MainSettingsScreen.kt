@@ -44,6 +44,7 @@ import org.stypox.dicio.io.input.SttInputDevice
 import org.stypox.dicio.io.wake.mww.MicroWakeWordConfig
 import org.stypox.dicio.io.wake.WakeService
 import org.stypox.dicio.skills.scroll.ScrollInfo
+import org.stypox.dicio.voiceaccess.GridOverlayView
 import org.stypox.dicio.voiceaccess.LabelStyle
 import org.stypox.dicio.settings.datastore.InputDevice
 import org.stypox.dicio.settings.datastore.LabelTheme
@@ -345,6 +346,12 @@ private fun MainSettingsScreen(
             labelContrast().Render(
                 settings.labelContrast.takeIf { it != 0 } ?: LabelStyle.DEFAULT_CONTRAST_PERCENT,
                 viewModel::setLabelContrast,
+            )
+        }
+        item {
+            gridOpacity().Render(
+                settings.gridOpacity.takeIf { it != 0 } ?: GridOverlayView.DEFAULT_OPACITY_PERCENT,
+                viewModel::setGridOpacity,
             )
         }
 

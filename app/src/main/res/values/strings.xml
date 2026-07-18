@@ -77,6 +77,8 @@
     <string name="pref_label_opacity_description">%1$d%%</string>
     <string name="pref_label_contrast_title">Label contrast</string>
     <string name="pref_label_contrast_description">%1$d%%</string>
+    <string name="pref_grid_opacity_title">Grid opacity</string>
+    <string name="pref_grid_opacity_description">%1$d%%</string>
     <string name="pref_label_theme_title">Label colors</string>
     <string name="pref_label_theme_summary">Color scheme of the numbered labels</string>
     <string name="pref_label_theme_dark">Dark (light text)</string>
@@ -216,6 +218,15 @@
     <string name="skill_labels_showed">Showed labels</string>
     <string name="skill_labels_hid">Hid labels</string>
     <string name="skill_labels_service_disabled">Voice Access is not enabled</string>
+    <string name="skill_name_grid">Coordinate grid</string>
+    <string name="skill_sentence_example_grid">Show grid</string>
+    <string name="skill_grid_shown">Showed grid</string>
+    <string name="skill_grid_hidden">Hid grid</string>
+    <string name="skill_grid_tapped">Tapped %1$s</string>
+    <string name="skill_grid_sub_shown">Refining %1$s, say another cell</string>
+    <string name="skill_grid_out_of_range">%1$s is off the grid</string>
+    <string name="skill_grid_not_understood">Which cell?</string>
+    <string name="skill_grid_service_disabled">Voice Access is not enabled</string>
     <string name="skill_name_click_number">Tap a number</string>
     <string name="skill_sentence_example_click_number">Tap 5</string>
     <string name="skill_click_number_tapped">Tapped %1$d</string>

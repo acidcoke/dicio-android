@@ -1,0 +1,14 @@
+show:
+  - zeig<e?>|aktivier<e?> das? raster|gitter
+  - raster|gitter anzeigen|einblenden|aktivieren
+
+hide:
+  - versteck<e?>|deaktivier<e?> das? raster|gitter
+  - blend<e?> das? raster|gitter aus
+  - raster|gitter ausblenden|verstecken|deaktivieren
+
+press:
+  - tipp<e?>|drück<e?>|wähl<e?> .cell.
+
+bare:
+  - .cell.

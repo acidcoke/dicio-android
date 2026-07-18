@@ -33,6 +33,7 @@ import org.stypox.dicio.skills.weather.WeatherInfo
 import org.stypox.dicio.skills.joke.JokeInfo
 import org.stypox.dicio.skills.flashlight.FlashlightInfo
 import org.stypox.dicio.skills.back.BackInfo
+import org.stypox.dicio.skills.grid.GridInfo
 import org.stypox.dicio.skills.labels.LabelsInfo
 import org.stypox.dicio.skills.click_number.ClickNumberInfo
 import org.stypox.dicio.skills.mouse_click.MouseClickInfo
@@ -69,6 +70,7 @@ class SkillHandler @Inject constructor(
         FlashlightInfo,
         BackInfo,
         LabelsInfo,
+        GridInfo,
         ClickNumberInfo(dataStore),
         MouseClickInfo,
         StopListeningInfo,
