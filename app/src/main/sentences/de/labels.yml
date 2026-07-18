@@ -1,0 +1,9 @@
+show:
+  - zeig<e?>|aktivier<e?> die? nummern|labels|etiketten
+  - blend<e?> (die)? nummern|labels|etiketten ein
+  - nummer<n?>|label<s?>|etikett<en?> anzeigen|einblenden|aktivieren
+
+hide:
+  - versteck<e?>|deaktivier<e?>|(blende aus) die? nummern|labels|etiketten
+  - blend<e?> (die)? nummern|labels|etiketten aus
+  - nummer<n?>|label<s?>|etikett<en?> ausblenden|verstecken|deaktivieren

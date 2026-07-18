@@ -7,7 +7,9 @@ import androidx.compose.material.icons.filled.BreakfastDining
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.ColorLens
+import androidx.compose.material.icons.filled.Contrast
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Opacity
 import androidx.compose.material.icons.filled.Hearing
 import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.InvertColors
@@ -20,12 +22,21 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.PictureInPictureAlt
+import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.SpeakerPhone
+import androidx.compose.material.icons.filled.SwipeVertical
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import org.stypox.dicio.R
+import org.stypox.dicio.io.wake.mww.MicroWakeWordConfig
 import org.stypox.dicio.settings.datastore.InputDevice
 import org.stypox.dicio.settings.datastore.Language
+import org.stypox.dicio.settings.datastore.LabelTheme
+import org.stypox.dicio.settings.datastore.ListeningDuration
+import org.stypox.dicio.settings.datastore.NumberSelectionMode
+import org.stypox.dicio.settings.datastore.ScrollAmount
 import org.stypox.dicio.settings.datastore.SpeechOutputDevice
 import org.stypox.dicio.settings.datastore.SttPlaySound
 import org.stypox.dicio.settings.datastore.Theme
@@ -139,10 +150,43 @@ fun wakeDevice() = ListSetting(
             name = stringResource(R.string.pref_wake_method_openwakeword),
         ),
         ListSetting.Value(
+            value = WakeDevice.WAKE_DEVICE_MWW,
+            name = stringResource(R.string.pref_wake_method_microwakeword),
+        ),
+        ListSetting.Value(
             value = WakeDevice.WAKE_DEVICE_NOTHING,
             name = stringResource(R.string.pref_wake_method_disabled),
         )
     )
+)
+
+@Composable
+fun mwwModel(configs: List<MicroWakeWordConfig>) = ListSetting(
+    title = stringResource(R.string.pref_mww_model),
+    icon = Icons.Default.RecordVoiceOver,
+    description = stringResource(R.string.pref_mww_model_summary),
+    possibleValues = buildList {
+        val onDiskIds = configs.mapTo(mutableSetOf()) { it.id }
+        configs.forEach { cfg ->
+            add(
+                ListSetting.Value(
+                    value = cfg.id,
+                    name = cfg.wakeWord,
+                    description = cfg.trainedLanguages.joinToString(", ").ifBlank { null },
+                )
+            )
+        }
+        MicroWakeWordConfig.BUILTINS.forEach { b ->
+            if (b.id !in onDiskIds) {
+                add(
+                    ListSetting.Value(
+                        value = b.id,
+                        name = b.displayName,
+                    )
+                )
+            }
+        }
+    },
 )
 
 @Composable
@@ -188,6 +232,107 @@ fun sttAutoFinish() = BooleanSetting(
     icon = Icons.AutoMirrored.Filled.Send,
     descriptionOff = stringResource(R.string.pref_stt_auto_finish_summary_off),
     descriptionOn = stringResource(R.string.pref_stt_auto_finish_summary_on),
+)
+
+@Composable
+fun numberSelectionMode() = ListSetting(
+    title = stringResource(R.string.pref_number_selection_mode_title),
+    icon = Icons.Default.TouchApp,
+    description = stringResource(R.string.pref_number_selection_mode_summary),
+    possibleValues = listOf(
+        ListSetting.Value(
+            value = NumberSelectionMode.NUMBER_SELECTION_MODE_EXPLICIT_AND_BARE,
+            name = stringResource(R.string.pref_number_selection_mode_explicit_and_bare),
+        ),
+        ListSetting.Value(
+            value = NumberSelectionMode.NUMBER_SELECTION_MODE_EXPLICIT_ONLY,
+            name = stringResource(R.string.pref_number_selection_mode_explicit_only),
+        ),
+    ),
+)
+
+@Composable
+fun scrollAmount() = ListSetting(
+    title = stringResource(R.string.pref_scroll_amount_title),
+    icon = Icons.Default.SwipeVertical,
+    description = stringResource(R.string.pref_scroll_amount_summary),
+    possibleValues = listOf(
+        ListSetting.Value(
+            value = ScrollAmount.SCROLL_AMOUNT_SHORT,
+            name = stringResource(R.string.pref_scroll_amount_short),
+        ),
+        ListSetting.Value(
+            value = ScrollAmount.SCROLL_AMOUNT_MEDIUM,
+            name = stringResource(R.string.pref_scroll_amount_medium),
+        ),
+        ListSetting.Value(
+            value = ScrollAmount.SCROLL_AMOUNT_LONG,
+            name = stringResource(R.string.pref_scroll_amount_long),
+        ),
+    ),
+)
+
+@Composable
+fun labelOpacity() = IntSetting(
+    title = stringResource(R.string.pref_label_opacity_title),
+    icon = Icons.Default.Opacity,
+    description = @Composable { stringResource(R.string.pref_label_opacity_description, it) },
+    minimum = 20,
+    maximum = 100,
+)
+
+@Composable
+fun labelContrast() = IntSetting(
+    title = stringResource(R.string.pref_label_contrast_title),
+    icon = Icons.Default.Contrast,
+    description = @Composable { stringResource(R.string.pref_label_contrast_description, it) },
+    minimum = 10,
+    maximum = 100,
+)
+
+@Composable
+fun listeningDuration() = ListSetting(
+    title = stringResource(R.string.pref_listening_duration_title),
+    icon = Icons.Default.Timer,
+    description = stringResource(R.string.pref_listening_duration_summary),
+    possibleValues = listOf(
+        ListSetting.Value(
+            value = ListeningDuration.LISTENING_DURATION_TIMEOUT_30S,
+            name = stringResource(R.string.pref_listening_duration_timeout_30s),
+        ),
+        ListSetting.Value(
+            value = ListeningDuration.LISTENING_DURATION_UNTIL_SCREEN_OFF,
+            name = stringResource(R.string.pref_listening_duration_until_screen_off),
+        ),
+    ),
+)
+
+@Composable
+fun invalidCommandsBeforePrompt() = IntSetting(
+    title = stringResource(R.string.pref_invalid_commands_before_prompt_title),
+    icon = Icons.Default.Timer,
+    description = @Composable {
+        stringResource(R.string.pref_invalid_commands_before_prompt_description, it)
+    },
+    minimum = 1,
+    maximum = 7,
+)
+
+@Composable
+fun labelTheme() = ListSetting(
+    title = stringResource(R.string.pref_label_theme_title),
+    icon = Icons.Default.DarkMode,
+    description = stringResource(R.string.pref_label_theme_summary),
+    possibleValues = listOf(
+        ListSetting.Value(
+            value = LabelTheme.LABEL_THEME_DARK,
+            name = stringResource(R.string.pref_label_theme_dark),
+        ),
+        ListSetting.Value(
+            value = LabelTheme.LABEL_THEME_LIGHT,
+            name = stringResource(R.string.pref_label_theme_light),
+        ),
+    ),
 )
 
 @Composable

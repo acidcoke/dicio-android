@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Configuration for VoiceAccessService. Mirrors Google Voice Access's accessibility-service
+  config: it needs to retrieve interactive window content (to enumerate clickable nodes) and
+  perform gestures (to fall back to tapping a node by coordinates).
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged|typeWindowsChanged|typeViewHoverEnter"
+    android:accessibilityFeedbackType="feedbackGeneric|feedbackVisual"
+    android:accessibilityFlags="flagRetrieveInteractiveWindows|flagReportViewIds|flagDefault"
+    android:canPerformGestures="true"
+    android:canRetrieveWindowContent="true"
+    android:description="@string/voice_access_service_description"
+    android:isAccessibilityTool="true"
+    android:notificationTimeout="100"
+    android:summary="@string/voice_access_service_summary" />

@@ -1,0 +1,44 @@
+slot_a:
+  - press|tap|type? alpha
+slot_b:
+  - press|tap|type? bravo
+slot_c:
+  - press|tap|type? charlie
+slot_d:
+  - press|tap|type? delta
+slot_e:
+  - press|tap|type? echo
+slot_f:
+  - press|tap|type? foxtrot
+slot_g:
+  - press|tap|type? golf
+slot_h:
+  - press|tap|type? hotel
+slot_i:
+  - press|tap|type? india
+slot_j:
+  - press|tap|type? juliet
+
+delete:
+  - delete
+
+enter:
+  - enter
+
+shift:
+  - shift
+
+space:
+  - space
+
+hold_delete:
+  - hold|(long press) delete
+
+hold_enter:
+  - hold|(long press) enter
+
+hold_shift:
+  - hold|(long press) shift
+
+hold_space:
+  - hold|(long press) space

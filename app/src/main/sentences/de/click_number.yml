@@ -1,0 +1,8 @@
+explicit:
+  - tipp<e?>|klick<e?>|drück<e?>|wähl<e?>|nummer .number.
+
+hold:
+  - halte<e?>|(lange drück<e?>) .number.
+
+bare:
+  - .number.

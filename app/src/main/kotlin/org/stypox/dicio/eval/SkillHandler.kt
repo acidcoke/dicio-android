@@ -32,6 +32,15 @@ import org.stypox.dicio.skills.translation.TranslationInfo
 import org.stypox.dicio.skills.weather.WeatherInfo
 import org.stypox.dicio.skills.joke.JokeInfo
 import org.stypox.dicio.skills.flashlight.FlashlightInfo
+import org.stypox.dicio.skills.back.BackInfo
+import org.stypox.dicio.skills.labels.LabelsInfo
+import org.stypox.dicio.skills.click_number.ClickNumberInfo
+import org.stypox.dicio.skills.mouse_click.MouseClickInfo
+import org.stypox.dicio.skills.stop_listening.StopListeningInfo
+import org.stypox.dicio.skills.scroll.ScrollInfo
+import org.stypox.dicio.skills.notifications.NotificationsInfo
+import org.stypox.dicio.skills.quick_settings.QuickSettingsInfo
+import org.stypox.dicio.skills.pin_key.PinKeyInfo
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -58,6 +67,15 @@ class SkillHandler @Inject constructor(
         TranslationInfo,
         NotifyInfo,
         FlashlightInfo,
+        BackInfo,
+        LabelsInfo,
+        ClickNumberInfo(dataStore),
+        MouseClickInfo,
+        StopListeningInfo,
+        ScrollInfo(dataStore),
+        NotificationsInfo,
+        QuickSettingsInfo,
+        PinKeyInfo,
     )
 
     private val fallbackSkillInfoList = listOf(

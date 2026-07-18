@@ -61,7 +61,8 @@ class AndroidTtsSpeechDevice(private var context: Context, locale: Locale) : Spe
                 "dicio_$lastUtteranceId"
             )
         } else {
-            Toast.makeText(context, speechOutput, Toast.LENGTH_LONG).show()
+            // TTS not ready: just log instead of popping a toast for every utterance
+            Log.w(TAG, "TTS not initialized, dropping speech output: $speechOutput")
         }
     }
 

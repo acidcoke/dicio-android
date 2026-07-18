@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Buchstabiertafel (Funkalphabet), erste zehn Buchstaben; Reihenfolge muss zu den
+         slot_a..slot_j IDs in sentences/de/pin_key.yml passen. -->
+    <string-array name="va_pin_words">
+        <item>Anton</item>
+        <item>Berta</item>
+        <item>Cäsar</item>
+        <item>Dora</item>
+        <item>Emil</item>
+        <item>Friedrich</item>
+        <item>Gustav</item>
+        <item>Heinrich</item>
+        <item>Ida</item>
+        <item>Julius</item>
+    </string-array>
+
+    <!-- Zusätzliche Wörter, die die Vosk-Grammatik bei angezeigtem PIN-Feld erlaubt, damit neben
+         den Buchstabierwörtern weiterhin die globalen Befehle gesprochen werden können (zurück /
+         nach Hause / scrollen / wischen / löschen / Eingabe / stopp). Ein Wort pro Eintrag. -->
+    <string-array name="va_command_grammar">
+        <item>tippe</item><item>tipp</item><item>drücke</item><item>drück</item>
+        <item>wähle</item><item>wähl</item><item>klicke</item><item>klick</item>
+        <item>maus</item>
+        <item>gehe</item><item>geh</item><item>zurück</item>
+        <item>zum</item><item>startbildschirm</item>
+        <item>scrolle</item><item>scroll</item><item>fahre</item><item>fahr</item>
+        <item>oben</item><item>hoch</item><item>rauf</item><item>unten</item>
+        <item>runter</item><item>herunter</item><item>links</item><item>rechts</item>
+        <item>scrollen</item><item>gehen</item><item>fahren</item>
+        <item>bagbord</item><item>steuerbord</item>
+        <item>wische</item><item>wisch</item><item>ziehe</item><item>zieh</item><item>sie</item>
+        <item>löschen</item><item>entfernen</item><item>rücktaste</item>
+        <item>eingabe</item><item>bestätigen</item><item>fertig</item><item>ok</item>
+        <item>enter</item>
+        <item>umschalt</item><item>umschalttaste</item><item>shift</item>
+        <item>leertaste</item><item>leerzeichen</item><item>space</item>
+        <item>stopp</item><item>stoppe</item><item>beende</item><item>beenden</item>
+        <item>abbrechen</item><item>das</item><item>zuhören</item><item>hör</item>
+        <item>höre</item><item>auf</item><item>aufhören</item><item>schluss</item>
+        <item>jetzt</item>
+        <item>nummer</item><item>punkt</item>
+        <item>eins</item><item>zwei</item><item>drei</item><item>vier</item>
+        <item>fünf</item><item>sechs</item><item>sieben</item><item>acht</item>
+        <item>neun</item><item>zehn</item><item>elf</item><item>zwölf</item>
+        <item>dreizehn</item><item>vierzehn</item><item>fünfzehn</item><item>sechzehn</item>
+        <item>siebzehn</item><item>achtzehn</item><item>neunzehn</item><item>zwanzig</item>
+        <item>dreißig</item><item>vierzig</item><item>fünfzig</item><item>sechzig</item>
+        <item>siebzig</item><item>achtzig</item><item>neunzig</item><item>hundert</item>
+        <!-- compound numbers 21..99 are single words in German (e.g. einundzwanzig = 21) -->
+        <item>einundzwanzig</item><item>zweiundzwanzig</item><item>dreiundzwanzig</item>
+        <item>vierundzwanzig</item><item>fünfundzwanzig</item><item>sechsundzwanzig</item>
+        <item>siebenundzwanzig</item><item>achtundzwanzig</item><item>neunundzwanzig</item>
+        <item>einunddreißig</item><item>zweiunddreißig</item><item>dreiunddreißig</item>
+        <item>vierunddreißig</item><item>fünfunddreißig</item><item>sechsunddreißig</item>
+        <item>siebenunddreißig</item><item>achtunddreißig</item><item>neununddreißig</item>
+        <item>einundvierzig</item><item>zweiundvierzig</item><item>dreiundvierzig</item>
+        <item>vierundvierzig</item><item>fünfundvierzig</item><item>sechsundvierzig</item>
+        <item>siebenundvierzig</item><item>achtundvierzig</item><item>neunundvierzig</item>
+        <item>einundfünfzig</item><item>zweiundfünfzig</item><item>dreiundfünfzig</item>
+        <item>vierundfünfzig</item><item>fünfundfünfzig</item><item>sechsundfünfzig</item>
+        <item>siebenundfünfzig</item><item>achtundfünfzig</item><item>neunundfünfzig</item>
+        <item>einundsechzig</item><item>zweiundsechzig</item><item>dreiundsechzig</item>
+        <item>vierundsechzig</item><item>fünfundsechzig</item><item>sechsundsechzig</item>
+        <item>siebenundsechzig</item><item>achtundsechzig</item><item>neunundsechzig</item>
+        <item>einundsiebzig</item><item>zweiundsiebzig</item><item>dreiundsiebzig</item>
+        <item>vierundsiebzig</item><item>fünfundsiebzig</item><item>sechsundsiebzig</item>
+        <item>siebenundsiebzig</item><item>achtundsiebzig</item><item>neunundsiebzig</item>
+        <item>einundachtzig</item><item>zweiundachtzig</item><item>dreiundachtzig</item>
+        <item>vierundachtzig</item><item>fünfundachtzig</item><item>sechsundachtzig</item>
+        <item>siebenundachtzig</item><item>achtundachtzig</item><item>neunundachtzig</item>
+        <item>einundneunzig</item><item>zweiundneunzig</item><item>dreiundneunzig</item>
+        <item>vierundneunzig</item><item>fünfundneunzig</item><item>sechsundneunzig</item>
+        <item>siebenundneunzig</item><item>achtundneunzig</item><item>neunundneunzig</item>
+        <!-- Uhrzeit -->
+        <item>wie</item><item>viel</item><item>wieviel</item><item>spät</item>
+        <item>uhr</item><item>ist</item><item>es</item><item>welche</item>
+        <item>uhrzeit</item><item>zeit</item>
+        <!-- Labels -->
+        <item>zeige</item><item>zeig</item><item>aktiviere</item><item>aktivier</item>
+        <item>die</item><item>nummern</item><item>labels</item><item>etiketten</item>
+        <item>blende</item><item>blend</item><item>ein</item><item>label</item>
+        <item>etikett</item><item>anzeigen</item><item>einblenden</item><item>aktivieren</item>
+        <item>versteck</item><item>verstecke</item><item>deaktiviere</item><item>deaktivier</item>
+        <item>aus</item><item>ausblenden</item><item>verstecken</item><item>deaktivieren</item>
+        <!-- Zuhören starten/stoppen -->
+        <item>starte</item><item>start</item><item>beginne</item><item>beginn</item>
+        <item>fang</item><item>an</item><item>mache</item><item>mach</item>
+        <item>mikro</item><item>mikrofon</item><item>mir</item><item>uns</item>
+        <item>mal</item><item>zu</item><item>warte</item><item>wart</item>
+        <item>lausche</item><item>lausch</item><item>schlüsselwort</item>
+        <item>aktivierungswort</item><item>wort</item><item>weg</item><item>stumm</item>
+        <item>stummschalten</item><item>unterlassen</item><item>lauschen</item><item>hören</item>
+        <!-- Medien -->
+        <item>gib</item><item>geb</item><item>spiele</item><item>spiel</item>
+        <item>audio</item><item>film</item><item>hörbuch</item><item>hörspiel</item>
+        <item>lied</item><item>musik</item><item>musikstück</item><item>podcast</item>
+        <item>song</item><item>stream</item><item>stück</item><item>track</item>
+        <item>video</item><item>wieder</item><item>ab</item><item>abspielen</item>
+        <item>fortsetzen</item><item>pausiere</item><item>pausieren</item><item>pausier</item>
+        <item>halte</item><item>halt</item><item>pause</item><item>anhalten</item>
+        <item>stoppen</item><item>letzte</item><item>letzten</item><item>wiederhole</item>
+        <item>wiederhol</item><item>skip</item><item>skipe</item><item>überspringe</item>
+        <item>überspring</item><item>springe</item><item>spring</item><item>nächste</item>
+        <item>nächsten</item><item>folgende</item><item>folgenden</item><item>warteschlange</item>
+        <item>schlange</item><item>der</item><item>den</item>
+        <!-- Benachrichtigungen / Schnelleinstellungen -->
+        <!-- HINWEIS: "öffne"/"öffn"/"öffnen" sind bewusst NICHT in der Grammatik: sie sind auch der
+             OpenSkill-Trigger für beliebige (freie) App-Namen, und in der Grammatik zwingt das den
+             Erkenner, App-Namen auf Grammatikwörter zu mappen (z.B. "öffne signal" -> "öffne zweite").
+             Der freie Erkenner versteht "öffne benachrichtigungen" gut, da es geläufige Wörter sind. -->
+        <item>benachrichtigungen</item>
+        <item>benachrichtigungsleiste</item><item>benachrichtigungszentrale</item>
+        <item>schnelleinstellungen</item><item>schnell</item>
+        <item>einstellungen</item>
+        <!-- Ja / Nein -->
+        <item>ja</item><item>bitte</item><item>allerdings</item><item>jawohl</item>
+        <item>jawoll</item><item>weitermachen</item><item>weiter</item><item>positiv</item>
+        <item>nein</item><item>danke</item><item>nee</item><item>no</item>
+        <item>nope</item><item>lass</item><item>negativ</item>
+        <!-- Wetter -->
+        <item>regnet</item><item>schneit</item><item>hagelt</item><item>draußen</item>
+        <item>wird</item><item>wetter</item><item>kalt</item><item>warm</item>
+        <item>eisig</item><item>nebelig</item><item>regnerisch</item><item>verschneit</item>
+        <item>sonnig</item><item>scheint</item><item>sonne</item>
+        <!-- Timer -->
+        <item>timer</item><item>ping</item><item>mich</item><item>in</item>
+        <item>stelle</item><item>stell</item><item>einen</item><item>für</item>
+        <item>dem</item><item>namen</item><item>genannt</item><item>läuft</item>
+        <item>lange</item><item>noch</item><item>wann</item>
+        <item>minute</item><item>minuten</item><item>sekunde</item><item>sekunden</item>
+        <item>stunde</item><item>stunden</item>
+    </string-array>
+
+    <!-- Führende Wörter der Skills mit freier Eingabe (öffnen/suchen/navigieren/anrufen/übersetzen/
+         Wetterfragen). Hört der Grammatik-Erkenner eines davon als ERSTES Wort, wird der Rest der
+         Äußerung (alles nach dem End-Zeitstempel dieses Wortes) mit dem freien Erkenner als Diktat
+         neu dekodiert, statt auf Grammatikwörter gezwungen zu werden. Reine geschlossene Befehle
+         beginnen nie mit einem dieser Wörter und bleiben so vollständig eingeschränkt. Diese Wörter
+         werden (im Code) auch dem Grammatik-Vokabular hinzugefügt, damit sie erkannt werden. -->
+    <string-array name="va_dictation_triggers">
+        <!-- öffnen -->
+        <item>öffne</item><item>oeffne</item><item>starte</item><item>zeige</item>
+        <item>zeig</item>
+        <!-- suchen -->
+        <item>finde</item><item>suche</item><item>schlage</item>
+        <!-- navigation -->
+        <item>navigiere</item><item>führe</item><item>fuehre</item><item>bringe</item>
+        <item>leite</item><item>route</item>
+        <!-- telefon -->
+        <item>ruf</item><item>rufe</item>
+        <!-- übersetzung -->
+        <item>übersetz</item><item>bitte</item><item>sag</item>
+        <!-- wetter (Fragewörter wie was/wie/wo/ist bleiben eingeschränkt, keine Trigger) -->
+        <item>regnet</item><item>schneit</item><item>hagelt</item>
+        <item>scheint</item><item>wetter</item>
+    </string-array>
+
+    <!-- Teilmenge von va_dictation_triggers, deren GESAMTE Äußerung (inklusive des Trigger-Worts
+         selbst) mit dem freien Erkenner neu dekodiert wird, statt nur der Rest nach dem Trigger.
+         Nur öffne/oeffne, da starte/zeige/zeig auch außerhalb von "öffnen" verwendet werden. -->
+    <string-array name="va_full_decode_triggers">
+        <item>öffne</item><item>oeffne</item>
+    </string-array>
+</resources>

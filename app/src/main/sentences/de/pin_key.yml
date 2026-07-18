@@ -1,0 +1,44 @@
+slot_a:
+  - tipp<e?>|drück<e?>|wähl<e?>? anton
+slot_b:
+  - tipp<e?>|drück<e?>|wähl<e?>? berta
+slot_c:
+  - tipp<e?>|drück<e?>|wähl<e?>? cäsar
+slot_d:
+  - tipp<e?>|drück<e?>|wähl<e?>? dora
+slot_e:
+  - tipp<e?>|drück<e?>|wähl<e?>? emil
+slot_f:
+  - tipp<e?>|drück<e?>|wähl<e?>? friedrich
+slot_g:
+  - tipp<e?>|drück<e?>|wähl<e?>? gustav
+slot_h:
+  - tipp<e?>|drück<e?>|wähl<e?>? heinrich
+slot_i:
+  - tipp<e?>|drück<e?>|wähl<e?>? ida
+slot_j:
+  - tipp<e?>|drück<e?>|wähl<e?>? julius
+
+delete:
+  - löschen|entfernen|rücktaste
+
+enter:
+  - eingabe|bestätigen|fertig|ok|enter
+
+shift:
+  - umschalt|umschalttaste|shift
+
+space:
+  - leertaste|leerzeichen|space
+
+hold_delete:
+  - halte<e?>|(lange drück<e?>) löschen|entfernen|rücktaste
+
+hold_enter:
+  - halte<e?>|(lange drück<e?>) eingabe|enter
+
+hold_shift:
+  - halte<e?>|(lange drück<e?>) umschalt|umschalttaste|shift
+
+hold_space:
+  - halte<e?>|(lange drück<e?>) leertaste|leerzeichen|space

@@ -6,6 +6,7 @@ import java.util.Properties
 rootProject.name = "Dicio"
 include(":app")
 include(":skill")
+include(":microwakeword")
 // we use includeBuild here since the plugins are compile-time dependencies
 includeBuild("sentences-compiler-plugin")
 includeBuild("unicode-cldr-plugin")

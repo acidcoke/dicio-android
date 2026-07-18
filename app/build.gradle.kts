@@ -30,7 +30,7 @@ android {
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "org.stypox.dicio"
+        applicationId = "org.voskaccess"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = 18
@@ -138,6 +138,7 @@ dependencies {
     // Dicio own libraries
     implementation(libs.dicio.numbers)
     implementation(project(":skill"))
+    implementation(project(":microwakeword"))
 
     // Android
     implementation(libs.appcompat)

@@ -1,0 +1,36 @@
+scroll_up:
+  - scroll|go up
+  - page up
+
+scroll_down:
+  - scroll|go down
+
+scroll_left:
+  - scroll|go left
+
+scroll_right:
+  - scroll|go right
+
+swipe_up:
+  - swipe up
+
+swipe_down:
+  - swipe down
+
+swipe_left:
+  - swipe left
+
+swipe_right:
+  - swipe right
+
+flick_up:
+  - flick up
+
+flick_down:
+  - flick down
+
+flick_left:
+  - flick left
+
+flick_right:
+  - flick right

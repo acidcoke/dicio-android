@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Voice Access overlay look -->
+    <color name="va_label_bg">#202124</color>
+    <color name="va_label_outline">#FAF8F9FA</color>
+    <color name="va_label_text">#FFFFFFFF</color>
+    <!-- Listening bar uses dicio's own primary green instead of Voice Access blue -->
+    <color name="va_listening_bg">#406836</color>
+    <color name="va_listening_text">#FFFFFFFF</color>
+    <!-- Continue/stop confirmation overlay -->
+    <color name="va_confirmation_bg">#202124</color>
+    <color name="va_confirmation_text">#FFFFFFFF</color>
+</resources>

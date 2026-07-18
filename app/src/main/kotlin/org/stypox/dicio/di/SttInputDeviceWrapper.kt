@@ -45,6 +45,12 @@ interface SttInputDeviceWrapper {
 
     fun onClick(eventListener: (InputEvent) -> Unit)
 
+    fun setRecognitionGrammar(
+        grammar: List<String>?,
+        dictationTriggers: List<String> = emptyList(),
+        fullDecodeTriggers: List<String> = emptyList(),
+    )
+
     fun reinitializeToReleaseResources()
 }
 
@@ -170,6 +176,14 @@ class SttInputDeviceWrapperImpl(
 
     override fun onClick(eventListener: (InputEvent) -> Unit) {
         sttInputDevice?.onClick(wrapEventListener(eventListener))
+    }
+
+    override fun setRecognitionGrammar(
+        grammar: List<String>?,
+        dictationTriggers: List<String>,
+        fullDecodeTriggers: List<String>,
+    ) {
+        sttInputDevice?.setRecognitionGrammar(grammar, dictationTriggers, fullDecodeTriggers)
     }
 
     override fun reinitializeToReleaseResources() {

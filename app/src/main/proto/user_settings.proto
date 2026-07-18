@@ -6,6 +6,10 @@ import "input_device.proto";
 import "speech_output_device.proto";
 import "wake_device.proto";
 import "stt_play_sound.proto";
+import "number_selection_mode.proto";
+import "scroll_amount.proto";
+import "label_theme.proto";
+import "listening_duration.proto";
 
 option java_package = "org.stypox.dicio.settings.datastore";
 option java_multiple_files = true;
@@ -21,4 +25,14 @@ message UserSettings {
     WakeDevice wake_device = 8;
     SttPlaySound stt_play_sound = 9;
     int32 stt_silence_duration = 10;
+    string mww_model = 11;
+    NumberSelectionMode number_selection_mode = 12;
+    ScrollAmount scroll_amount = 13;
+    // Voice Access numbered-label appearance. 0 means unset → a sensible default is used.
+    int32 label_opacity = 14;   // chip opacity, 20..100 (%)
+    int32 label_contrast = 15;  // chip/text contrast, 10..100 (%)
+    LabelTheme label_theme = 16; // light or dark chip colors
+    ListeningDuration listening_duration = 17; // how long a session stays active
+    // unrecognized commands before the continue/stop prompt; 0 means unset → default
+    int32 invalid_commands_before_prompt = 18;
 }

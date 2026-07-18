@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
+import org.json.JSONArray
 import org.stypox.dicio.BuildConfig
 import org.stypox.dicio.di.LocaleManager
 import org.stypox.dicio.io.input.InputEvent
@@ -85,6 +86,13 @@ class VoskInputDevice(
     private val sameModelUrlCheck: File get() = File(filesDir, "vosk-model-url")
     private val modelDirectory: File get() = File(filesDir, "vosk-model")
     private val modelExistFileCheck: File get() = File(modelDirectory, "ivector")
+
+    // the context grammar currently constraining recognition (null = free recognition), and the
+    // loaded model kept around so the recognizer can be rebuilt with a new grammar without reloading
+    @Volatile private var grammar: List<String>? = null
+    @Volatile private var dictationTriggers: List<String> = emptyList()
+    @Volatile private var fullDecodeTriggers: List<String> = emptyList()
+    @Volatile private var loadedModel: Model? = null
 
     init {
         // Run blocking, because the locale is always available right away since LocaleManager also
@@ -165,12 +173,12 @@ class VoskInputDevice(
                 when (val s = _state.getAndUpdate { NotInitialized }) {
                     NotInitialized -> {} // everything is ok
                     is Loaded -> {
-                        s.speechService.stop()
-                        s.speechService.shutdown()
+                        s.speechStream.stop()
+                        s.speechStream.shutdown()
                     }
                     is Listening -> {
-                        stopListening(s.speechService, s.eventListener, true)
-                        s.speechService.shutdown()
+                        stopListening(s.speechStream, s.eventListener, true)
+                        s.speechStream.shutdown()
                     }
                     else -> {
                         Log.w(TAG, "Unexpected state after loading: $s")
@@ -178,12 +186,12 @@ class VoskInputDevice(
                 }
             }
             is Loaded -> {
-                prevState.speechService.stop()
-                prevState.speechService.shutdown()
+                prevState.speechStream.stop()
+                prevState.speechStream.shutdown()
             }
             is Listening -> {
-                stopListening(prevState.speechService, prevState.eventListener, true)
-                prevState.speechService.shutdown()
+                stopListening(prevState.speechStream, prevState.eventListener, true)
+                prevState.speechStream.shutdown()
             }
 
             // these states are all resting states, so there is nothing to interrupt
@@ -196,6 +204,9 @@ class VoskInputDevice(
             is NotLoaded,
             is ErrorLoading -> {}
         }
+        // the model (if any) has been torn down with its speech service; drop the reference so a
+        // grammar change can't rebuild a recognizer against a freed model
+        loadedModel = null
     }
 
     /**
@@ -216,7 +227,7 @@ class VoskInputDevice(
             load(thenStartListeningEventListener)
             return true
         } else if (thenStartListeningEventListener != null && s is Loaded) {
-            startListening(s.speechService, thenStartListeningEventListener)
+            startListening(s.speechStream, thenStartListeningEventListener)
             return true
         } else {
             return false
@@ -249,8 +260,8 @@ class VoskInputDevice(
             is NotLoaded -> load(eventListener)
             is Loading -> toggleThenStartListening(eventListener) // wait for loading to finish
             is ErrorLoading -> load(eventListener) // retry
-            is Loaded -> startListening(s.speechService, eventListener)
-            is Listening -> stopListening(s.speechService, s.eventListener, true)
+            is Loaded -> startListening(s.speechStream, eventListener)
+            is Listening -> stopListening(s.speechStream, s.eventListener, true)
         }
     }
 
@@ -259,7 +270,7 @@ class VoskInputDevice(
      */
     override fun stopListening() {
         when (val s = _state.value) {
-            is Listening -> stopListening(s.speechService, s.eventListener, true)
+            is Listening -> stopListening(s.speechStream, s.eventListener, true)
             else -> {}
         }
     }
@@ -350,20 +361,19 @@ class VoskInputDevice(
         _state.value = Loading(thenStartListeningEventListener)
 
         operationsJob = scope.launch {
-            val speechService: SpeechService
+            val speechStream: SpeechStream
             try {
                 LibVosk.setLogLevel(if (BuildConfig.DEBUG) LogLevel.DEBUG else LogLevel.WARNINGS)
                 val model = Model(modelDirectory.absolutePath)
-                val recognizer = Recognizer(model, SAMPLE_RATE)
-                recognizer.setMaxAlternatives(ALTERNATIVE_COUNT)
-                speechService = SpeechService(recognizer, SAMPLE_RATE)
+                loadedModel = model
+                speechStream = buildSpeechStream(model)
             } catch (e: IOException) {
                 Log.e(TAG, "Can't load Vosk model", e)
                 _state.value = ErrorLoading(e)
                 return@launch
             }
 
-            if (!_state.compareAndSet(Loading(null), Loaded(speechService))) {
+            if (!_state.compareAndSet(Loading(null), Loaded(speechStream))) {
                 val state = _state.value
                 if (state is Loading && state.thenStartListening != null) {
                     // "state is Loading" will always be true except when the load() is begin
@@ -371,14 +381,14 @@ class VoskInputDevice(
                     // "state.thenStartListening" might be "null" if, in the brief moment between
                     // the compareAndSet() and reading _state.value, the state was changed by
                     // toggleThenStartListening().
-                    startListening(speechService, state.thenStartListening)
+                    startListening(speechStream, state.thenStartListening)
 
-                } else if (!_state.compareAndSet(Loading(null, true), Loaded(speechService))) {
+                } else if (!_state.compareAndSet(Loading(null, true), Loaded(speechStream))) {
                     // The current state is not the Loading state, which is unexpected. This means
                     // that load() is begin joined by init(), which is reinitializing everything,
-                    // so we should drop the speechService.
-                    speechService.stop()
-                    speechService.shutdown()
+                    // so we should drop the speechStream.
+                    speechStream.stop()
+                    speechStream.shutdown()
                 }
 
             } // else, the state was set to Loaded, so no need to do anything
@@ -403,8 +413,8 @@ class VoskInputDevice(
             // first checked before calling this function, and when the checks above are performed
             Log.w(TAG, "Cannot toggle thenStartListening")
             when (val newValue = _state.value) {
-                is Loaded -> startListening(newValue.speechService, eventListener)
-                is Listening -> stopListening(newValue.speechService, newValue.eventListener, true)
+                is Loaded -> startListening(newValue.speechStream, eventListener)
+                is Listening -> stopListening(newValue.speechStream, newValue.eventListener, true)
                 is ErrorLoading -> {} // ignore the user's click
                 // the else should never happen, since load() only transitions from Loading(...) to
                 // one of Loaded, Listening or ErrorLoading
@@ -414,30 +424,112 @@ class VoskInputDevice(
     }
 
     /**
-     * Starts the speech service listening, and changes the state to [Listening].
+     * Starts the speech stream listening, and changes the state to [Listening].
      */
     private fun startListening(
-        speechService: SpeechService,
+        speechStream: SpeechStream,
         eventListener: (InputEvent) -> Unit,
     ) {
-        _state.value = Listening(speechService, eventListener)
-        speechService.startListening(VoskListener(this, eventListener, silencesBeforeStop.value, speechService))
+        _state.value = Listening(speechStream, eventListener)
+        speechStream.startListening(VoskListener(this, eventListener, silencesBeforeStop.value, speechStream))
     }
 
     /**
-     * Stops the speech service from listening, and changes the state to [Loaded]. This is
+     * Stops the speech stream from listening, and changes the state to [Loaded]. This is
      * `internal` because it is used by [VoskListener].
      */
     internal fun stopListening(
-        speechService: SpeechService,
+        speechStream: SpeechStream,
         eventListener: (InputEvent) -> Unit,
         sendNoneEvent: Boolean,
     ) {
-        _state.value = Loaded(speechService)
-        speechService.stop()
+        _state.value = Loaded(speechStream)
+        speechStream.stop()
         if (sendNoneEvent) {
             eventListener(InputEvent.None)
         }
+    }
+
+    override fun setRecognitionGrammar(
+        grammar: List<String>?,
+        dictationTriggers: List<String>,
+        fullDecodeTriggers: List<String>,
+    ) {
+        val normalized = grammar?.takeIf { it.isNotEmpty() }
+        if (this.grammar == normalized && this.dictationTriggers == dictationTriggers &&
+            this.fullDecodeTriggers == fullDecodeTriggers
+        ) return
+        this.grammar = normalized
+        this.dictationTriggers = dictationTriggers
+        this.fullDecodeTriggers = fullDecodeTriggers
+        scope.launch { applyGrammar() }
+    }
+
+    /**
+     * Rebuilds the [SpeechStream] so the new [grammar] takes effect, reusing the already-loaded
+     * [Model]. Builds the replacement before tearing down the old one, so a grammar that the model
+     * can't honor leaves the running recognizer untouched.
+     */
+    private suspend fun applyGrammar() {
+        val model = loadedModel ?: return // not loaded yet: grammar is read at load() time
+        val newStream = try {
+            buildSpeechStream(model)
+        } catch (e: Exception) {
+            Log.e(TAG, "Can't build recognizer with grammar, keeping current recognition", e)
+            return
+        }
+        Log.d(TAG, "Applied recognition grammar: ${grammar ?: "free"}")
+        when (val s = _state.value) {
+            is Loaded -> {
+                s.speechStream.stop()
+                s.speechStream.shutdown()
+                _state.value = Loaded(newStream)
+            }
+            is Listening -> {
+                val listener = s.eventListener
+                stopListening(s.speechStream, listener, false)
+                s.speechStream.shutdown()
+                startListening(newStream, listener)
+            }
+            else -> newStream.shutdown() // not currently usable; the next load() rebuilds it
+        }
+    }
+
+    /**
+     * Builds the [SpeechStream] for [model]. When a [grammar] is set (e.g. during a Voice Access
+     * session) it runs a [RelaySpeechStream]: one microphone feeding both a grammar-constrained and
+     * a free recognizer in parallel, so closed commands and free-form dictation are recognized at
+     * the same time. With no grammar it runs the plain free-dictation [SpeechService].
+     */
+    private fun buildSpeechStream(model: Model): SpeechStream {
+        val currentGrammar = grammar
+        return if (currentGrammar != null) {
+            val triggers = dictationTriggers.map { it.lowercase() }
+            RelaySpeechStream(
+                model = model,
+                sampleRate = RELAY_SAMPLE_RATE,
+                // the trigger words must be recognizable, so add them to the grammar vocabulary
+                grammarJson = toGrammarJson(currentGrammar + triggers),
+                dictationTriggers = triggers.toSet(),
+                fullDecodeTriggers = fullDecodeTriggers.map { it.lowercase() }.toSet(),
+                maxAlternatives = ALTERNATIVE_COUNT,
+            )
+        } else {
+            SingleSpeechStream(SpeechService(makeFreeRecognizer(model), SAMPLE_RATE))
+        }
+    }
+
+    private fun makeFreeRecognizer(model: Model): Recognizer {
+        return Recognizer(model, SAMPLE_RATE).apply { setMaxAlternatives(ALTERNATIVE_COUNT) }
+    }
+
+    private fun toGrammarJson(words: List<String>): String {
+        // Vosk expects a JSON array of allowed phrases; "[unk]" lets out-of-grammar speech be
+        // reported as unknown instead of being force-matched to one of the listed words
+        val arr = JSONArray()
+        words.forEach { arr.put(it.lowercase()) }
+        arr.put("[unk]")
+        return arr.toString()
     }
 
     override suspend fun destroy() {
@@ -448,6 +540,10 @@ class VoskInputDevice(
 
     companion object {
         private const val SAMPLE_RATE = 44100.0f
+        // the relay captures at the model-native 16 kHz: the small Vosk models discard everything
+        // above 8 kHz anyway, so this is no quality loss and costs less CPU (important with two
+        // recognizers decoding in parallel)
+        private const val RELAY_SAMPLE_RATE = 16000
         private const val ALTERNATIVE_COUNT = 5
         private val TAG = VoskInputDevice::class.simpleName
 

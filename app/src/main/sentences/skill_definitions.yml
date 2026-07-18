@@ -58,6 +58,98 @@ skills:
           - id: what
             type: string
 
+  - id: back
+    specificity: high
+    sentences:
+      - id: go_back
+      - id: go_home
+
+  - id: labels
+    specificity: high
+    sentences:
+      - id: show
+      - id: hide
+
+  - id: click_number
+    specificity: high
+    sentences:
+      - id: explicit
+        captures:
+          - id: number
+            type: string
+      - id: hold
+        captures:
+          - id: number
+            type: string
+      - id: bare
+        captures:
+          - id: number
+            type: string
+
+  - id: mouse_click
+    specificity: high
+    sentences:
+      - id: click
+
+  - id: stop_listening
+    specificity: high
+    sentences:
+      - id: stop
+
+  - id: confirmation
+    specificity: high
+    sentences:
+      - id: continue
+      - id: stop
+
+  - id: notifications
+    specificity: high
+    sentences:
+      - id: show
+
+  - id: quick_settings
+    specificity: high
+    sentences:
+      - id: show
+
+  - id: pin_key
+    specificity: high
+    sentences:
+      - id: slot_a
+      - id: slot_b
+      - id: slot_c
+      - id: slot_d
+      - id: slot_e
+      - id: slot_f
+      - id: slot_g
+      - id: slot_h
+      - id: slot_i
+      - id: slot_j
+      - id: delete
+      - id: enter
+      - id: shift
+      - id: space
+      - id: hold_delete
+      - id: hold_enter
+      - id: hold_shift
+      - id: hold_space
+
+  - id: scroll
+    specificity: high
+    sentences:
+      - id: scroll_up
+      - id: scroll_down
+      - id: scroll_left
+      - id: scroll_right
+      - id: swipe_up
+      - id: swipe_down
+      - id: swipe_left
+      - id: swipe_right
+      - id: flick_up
+      - id: flick_down
+      - id: flick_left
+      - id: flick_right
+
   - id: listening
     specificity: high
     sentences:

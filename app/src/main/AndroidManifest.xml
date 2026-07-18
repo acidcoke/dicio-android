@@ -10,6 +10,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <!-- wake the screen when the wake word is detected while the screen is off -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" tools:ignore="ProtectedPermissions"/>
 
     <!-- required by the download manager for APIs < Q -->
@@ -131,5 +133,19 @@
             android:foregroundServiceType="microphone"
             android:icon="@mipmap/ic_launcher"
             android:label="@string/wake_service_label" />
+
+        <service
+            android:name=".voiceaccess.VoiceAccessService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:enabled="true"
+            android:exported="false"
+            android:label="@string/voice_access_service_label">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibilityservice" />
+        </service>
     </application>
 </manifest>

@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+option java_package = "org.stypox.dicio.settings.datastore";
+option java_multiple_files = true;
+
+// How the user may select a numbered label by voice in Voice Access mode.
+enum NumberSelectionMode {
+  // Unset is treated as the default, which is EXPLICIT_AND_BARE ("mode 2").
+  NUMBER_SELECTION_MODE_UNSET = 0;
+  // Only explicit phrasings work: "tap 5", "click 5", "number 5".
+  NUMBER_SELECTION_MODE_EXPLICIT_ONLY = 1;
+  // Explicit phrasings plus a bare number ("five") select the label. This is the default.
+  NUMBER_SELECTION_MODE_EXPLICIT_AND_BARE = 2;
+}
