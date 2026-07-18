@@ -1,0 +1,11 @@
+show:
+  - show|display grid
+
+hide:
+  - hide grid
+
+press:
+  - press|tap .cell.
+
+bare:
+  - .cell.

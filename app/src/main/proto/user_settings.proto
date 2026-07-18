@@ -35,4 +35,6 @@ message UserSettings {
     ListeningDuration listening_duration = 17; // how long a session stays active
     // unrecognized commands before the continue/stop prompt; 0 means unset → default
     int32 invalid_commands_before_prompt = 18;
+    // grid overlay line/text opacity, 20..100 (%); 0 means unset → default
+    int32 grid_opacity = 19;
 }

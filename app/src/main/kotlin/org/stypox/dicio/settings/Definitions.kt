@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.Contrast
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Grid4x4
 import androidx.compose.material.icons.filled.Opacity
 import androidx.compose.material.icons.filled.Hearing
 import androidx.compose.material.icons.filled.HourglassEmpty
@@ -277,6 +278,15 @@ fun labelOpacity() = IntSetting(
     title = stringResource(R.string.pref_label_opacity_title),
     icon = Icons.Default.Opacity,
     description = @Composable { stringResource(R.string.pref_label_opacity_description, it) },
+    minimum = 20,
+    maximum = 100,
+)
+
+@Composable
+fun gridOpacity() = IntSetting(
+    title = stringResource(R.string.pref_grid_opacity_title),
+    icon = Icons.Default.Grid4x4,
+    description = @Composable { stringResource(R.string.pref_grid_opacity_description, it) },
     minimum = 20,
     maximum = 100,
 )

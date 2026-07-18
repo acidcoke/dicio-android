@@ -291,6 +291,8 @@
     <string name="pref_label_opacity_description">%1$d%%</string>
     <string name="pref_label_contrast_title">Kontrast der Markierungen</string>
     <string name="pref_label_contrast_description">%1$d%%</string>
+    <string name="pref_grid_opacity_title">Deckkraft des Rasters</string>
+    <string name="pref_grid_opacity_description">%1$d%%</string>
     <string name="pref_label_theme_title">Farben der Markierungen</string>
     <string name="pref_label_theme_summary">Farbschema der nummerierten Markierungen</string>
     <string name="pref_label_theme_dark">Dunkel (heller Text)</string>
@@ -314,6 +316,15 @@
     <string name="skill_sentence_example_back">Geh zurück</string>
     <string name="skill_name_labels">Markierungen anzeigen</string>
     <string name="skill_sentence_example_labels">Markierungen anzeigen</string>
+    <string name="skill_name_grid">Koordinatenraster</string>
+    <string name="skill_sentence_example_grid">Zeige Raster</string>
+    <string name="skill_grid_shown">Raster angezeigt</string>
+    <string name="skill_grid_hidden">Raster ausgeblendet</string>
+    <string name="skill_grid_tapped">%1$s angetippt</string>
+    <string name="skill_grid_sub_shown">Verfeinere %1$s, sag eine weitere Zelle</string>
+    <string name="skill_grid_out_of_range">%1$s liegt außerhalb des Rasters</string>
+    <string name="skill_grid_not_understood">Welche Zelle?</string>
+    <string name="skill_grid_service_disabled">Voice Access ist nicht aktiviert</string>
     <string name="skill_name_click_number">Eine Nummer antippen</string>
     <string name="skill_sentence_example_click_number">Tippe 5</string>
     <string name="skill_name_stop_listening">Zuhören beenden</string>
