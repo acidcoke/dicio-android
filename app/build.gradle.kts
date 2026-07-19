@@ -1,6 +1,7 @@
 import org.eclipse.jgit.api.Git
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.stypox.dicio.unicodeCldrPlugin.UnicodeCldrLanguagesTask
+import java.net.URI
 
 buildscript {
     repositories {
@@ -111,7 +112,7 @@ val downloadVoskModels = tasks.register("downloadVoskModels") {
                 continue
             }
             val part = File(outputDir, "${target.name}.part")
-            java.net.URI(url).toURL().openStream().use { input ->
+            URI(url).toURL().openStream().use { input ->
                 part.outputStream().use { output -> input.copyTo(output) }
             }
             if (!part.renameTo(target)) {
