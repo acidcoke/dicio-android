@@ -1,3 +1,5 @@
 /build
 /release
 /src/main/api_keys.json
+# Vosk model zips fetched at build time by the downloadVoskModels task
+/src/debug/assets/voskModels

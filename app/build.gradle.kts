@@ -85,7 +85,42 @@ android {
         buildConfig = true
         compose = true
     }
+
+    androidResources {
+        // the bundled Vosk model zips are already compressed; don't let AAPT deflate them again
+        noCompress.add("zip")
+    }
 }
+
+// Vosk STT model zips bundled into DEBUG builds only, so that testing an APK does not require the
+// in-app model download. The zips are fetched at build time (not committed to the repo) and land
+// in a debug-only asset dir; VoskInputDevice installs them from assets instead of downloading.
+// Keep the URLs in sync with MODEL_URLS in io/input/vosk/VoskInputDevice.kt.
+val bundledVoskModelUrls = listOf(
+    "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip",
+    "https://alphacephei.com/vosk/models/vosk-model-small-de-0.15.zip",
+)
+val downloadVoskModels = tasks.register("downloadVoskModels") {
+    val outputDir = file("src/debug/assets/voskModels")
+    outputs.dir(outputDir)
+    doLast {
+        outputDir.mkdirs()
+        for (url in bundledVoskModelUrls) {
+            val target = File(outputDir, url.substringAfterLast('/'))
+            if (target.length() > 0) {
+                continue
+            }
+            val part = File(outputDir, "${target.name}.part")
+            java.net.URI(url).toURL().openStream().use { input ->
+                part.outputStream().use { output -> input.copyTo(output) }
+            }
+            if (!part.renameTo(target)) {
+                throw GradleException("Cannot rename $part to $target")
+            }
+        }
+    }
+}
+tasks.matching { it.name == "mergeDebugAssets" }.configureEach { dependsOn(downloadVoskModels) }
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()

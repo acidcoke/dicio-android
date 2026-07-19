@@ -82,6 +82,7 @@ class VoskInputDevice(
 
     private val filesDir: File = appContext.filesDir
     private val cacheDir: File = appContext.cacheDir
+    private val assetManager = appContext.assets
     private val modelZipFile: File get() = File(filesDir, "vosk-model.zip")
     private val sameModelUrlCheck: File get() = File(filesDir, "vosk-model-url")
     private val modelDirectory: File get() = File(filesDir, "vosk-model")
@@ -109,6 +110,9 @@ class VoskInputDevice(
         scope.launch {
             _state.collect { _uiState.value = it.toUiState() }
         }
+
+        // must run after _state is assigned, since it may kick off the install job
+        installBundledModelIfNeeded(initialState)
 
         scope.launch {
             // perform initialization again every time the locale changes
@@ -154,6 +158,9 @@ class VoskInputDevice(
         // reinitialize and emit the new state
         val initialState = init(locale)
         _state.emit(initialState)
+
+        // a language switch may need a different model; install it from the APK if bundled
+        installBundledModelIfNeeded(initialState)
     }
 
     private suspend fun deinit() {
@@ -284,12 +291,19 @@ class VoskInputDevice(
 
         operationsJob = scope.launch(Dispatchers.IO) {
             try {
-                downloadBinaryFilesWithPartial(
-                    urlsFiles = listOf(FileToDownload(modelUrl, modelZipFile, sameModelUrlCheck)),
-                    httpClient = okHttpClient,
-                    cacheDir = cacheDir,
-                ) { progress ->
-                    _state.value = Downloading(progress)
+                val bundledAsset = bundledModelAsset(modelUrl)
+                if (bundledAsset != null) {
+                    // debug builds bundle the model zip in the APK: install it from there so
+                    // testing never needs the in-app download
+                    copyBundledModel(bundledAsset, modelUrl)
+                } else {
+                    downloadBinaryFilesWithPartial(
+                        urlsFiles = listOf(FileToDownload(modelUrl, modelZipFile, sameModelUrlCheck)),
+                        httpClient = okHttpClient,
+                        cacheDir = cacheDir,
+                    ) { progress ->
+                        _state.value = Downloading(progress)
+                    }
                 }
 
                 // downloadBinaryFilesWithPartial will update the sameModelUrlCheck file contents
@@ -306,6 +320,47 @@ class VoskInputDevice(
 
             _state.value = Unzipping(Progress.UNKNOWN)
             unzipImpl() // reuse same job
+        }
+    }
+
+    /**
+     * Asset path of the model zip for [modelUrl] bundled into the APK (debug builds bundle the
+     * en/de models via the downloadVoskModels gradle task), or null if it is not bundled.
+     */
+    private fun bundledModelAsset(modelUrl: String): String? {
+        val assetPath = "$BUNDLED_MODELS_ASSET_DIR/${modelUrl.substringAfterLast('/')}"
+        return try {
+            assetManager.open(assetPath).close()
+            assetPath
+        } catch (_: IOException) {
+            null
+        }
+    }
+
+    /**
+     * Installs the model zip bundled in the APK assets instead of downloading it: copies it to
+     * [modelZipFile] (through a temporary file, so an interrupted copy is never mistaken for a
+     * complete zip) and updates [sameModelUrlCheck], just like the network download would.
+     */
+    private fun copyBundledModel(assetPath: String, modelUrl: String) {
+        val partFile = File(filesDir, "vosk-model.zip.part")
+        assetManager.open(assetPath).use { input ->
+            partFile.outputStream().use { output -> input.copyTo(output) }
+        }
+        if (!partFile.renameTo(modelZipFile)) {
+            throw IOException("Cannot rename $partFile to $modelZipFile")
+        }
+        sameModelUrlCheck.writeText(modelUrl)
+    }
+
+    /**
+     * If the model for the current locale is not downloaded but its zip is bundled in the APK
+     * assets, installs it right away (a local copy, no network involved), so the STT becomes
+     * usable without the user having to trigger a download.
+     */
+    private fun installBundledModelIfNeeded(state: VoskState) {
+        if (state is NotDownloaded && bundledModelAsset(state.modelUrl) != null) {
+            download(state.modelUrl)
         }
     }
 
@@ -547,8 +602,14 @@ class VoskInputDevice(
         private const val ALTERNATIVE_COUNT = 5
         private val TAG = VoskInputDevice::class.simpleName
 
+        // asset dir holding model zips bundled into debug builds by the downloadVoskModels gradle
+        // task (see app/build.gradle.kts); empty/absent in release builds
+        private const val BUNDLED_MODELS_ASSET_DIR = "voskModels"
+
         /**
-         * All small models from [Vosk](https://alphacephei.com/vosk/models)
+         * All small models from [Vosk](https://alphacephei.com/vosk/models).
+         * The en/de entries are also bundled into debug builds; keep them in sync with
+         * bundledVoskModelUrls in app/build.gradle.kts.
          */
         val MODEL_URLS = mapOf(
             "en" to "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip",
