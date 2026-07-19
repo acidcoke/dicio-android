@@ -174,7 +174,7 @@ private fun MainSettingsScreen(
         }
         val wakeDevice = when (val device = settings.wakeDevice) {
             WakeDevice.UNRECOGNIZED,
-            WakeDevice.WAKE_DEVICE_UNSET -> WakeDevice.WAKE_DEVICE_OWW
+            WakeDevice.WAKE_DEVICE_UNSET -> WakeDevice.WAKE_DEVICE_MWW
             else -> device
         }
         item {
