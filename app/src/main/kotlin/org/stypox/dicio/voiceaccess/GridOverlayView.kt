@@ -125,6 +125,18 @@ class GridOverlayView(context: Context) : View(context) {
         return dp(FALLBACK_STATUS_BAR_DP)
     }
 
+    /** Bottom inset of the navigation bar, so the bottom row of letters sits above it. */
+    private fun navigationBarInset(): Float {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            rootWindowInsets?.getInsets(WindowInsets.Type.navigationBars())?.bottom
+                ?.let { return it.toFloat() }
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            @Suppress("DEPRECATION")
+            rootWindowInsets?.systemWindowInsetBottom?.let { return it.toFloat() }
+        }
+        return dp(FALLBACK_NAVIGATION_BAR_DP)
+    }
+
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         val geo = geometry ?: return
@@ -148,26 +160,24 @@ class GridOverlayView(context: Context) : View(context) {
             canvas.drawHaloLine(0f, y, width, y)
         }
 
-        // column letters along the top, below the status bar so they aren't covered by it
-        val letterBaseline = statusBarInset() + dp(4f) - textPaint.fontMetrics.ascent
+        // column letters along the top (below the status bar so they aren't covered by it) and
+        // again along the bottom (above the navigation bar)
+        val topLetterBaseline = statusBarInset() + dp(4f) - textPaint.fontMetrics.ascent
+        val bottomLetterBaseline =
+            height - navigationBarInset() - dp(4f) - textPaint.fontMetrics.descent
         for (col in 0 until geo.cols) {
-            canvas.drawHaloText(
-                ('a' + col).toString(),
-                (col + 0.5f) * geo.cellSize,
-                letterBaseline,
-                small = false,
-            )
+            val letter = ('a' + col).toString()
+            val x = (col + 0.5f) * geo.cellSize
+            canvas.drawHaloText(letter, x, topLetterBaseline, small = false)
+            canvas.drawHaloText(letter, x, bottomLetterBaseline, small = false)
         }
-        // row numbers just inside the left edge, vertically centered in each row
+        // row numbers just inside the left and right edges, vertically centered in each row
         val textCenterOffset = (textPaint.fontMetrics.descent + textPaint.fontMetrics.ascent) / 2f
         for (row in 0 until geo.rows) {
-            val rect = geo.cellRect(0, row)
-            canvas.drawHaloText(
-                (row + 1).toString(),
-                dp(12f),
-                rect.centerY() - textCenterOffset,
-                small = false,
-            )
+            val number = (row + 1).toString()
+            val y = geo.cellRect(0, row).centerY() - textCenterOffset
+            canvas.drawHaloText(number, dp(12f), y, small = false)
+            canvas.drawHaloText(number, width - dp(12f), y, small = false)
         }
 
         subGridCell?.let { cell -> drawSubGrid(canvas, geo, cell) }
@@ -218,5 +228,6 @@ class GridOverlayView(context: Context) : View(context) {
         private const val DARK_TONE = 0x20
         // used when the window insets are not available yet
         private const val FALLBACK_STATUS_BAR_DP = 28f
+        private const val FALLBACK_NAVIGATION_BAR_DP = 24f
     }
 }
