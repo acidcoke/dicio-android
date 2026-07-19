@@ -146,9 +146,10 @@ class WakeDeviceWrapperImpl(
 
     private fun buildInputDevice(setting: DataStoreWakeDevice): WakeDevice? {
         return when (setting) {
+            WAKE_DEVICE_OWW -> OpenWakeWordDevice(appContext, okHttpClient)
+            // default to microWakeWord ("Hey Luna"), whose model ships bundled in the APK assets
             UNRECOGNIZED,
             WAKE_DEVICE_UNSET,
-            WAKE_DEVICE_OWW -> OpenWakeWordDevice(appContext, okHttpClient)
             WAKE_DEVICE_MWW -> {
                 val id = currentMwwModel.ifBlank { MicroWakeWordConfig.DEFAULT_ID }
                 MicroWakeWordDevice(appContext, okHttpClient, id)

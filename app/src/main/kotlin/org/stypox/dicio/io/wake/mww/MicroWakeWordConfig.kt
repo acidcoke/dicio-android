@@ -24,7 +24,7 @@ data class MicroWakeWordConfig(
     )
 
     companion object {
-        const val DEFAULT_ID = "okay_nabu"
+        const val DEFAULT_ID = "hey_luna"
         const val ASSET_DIR_NAME = "microWakeWord"
 
         val BUILTINS: List<BuiltinDescriptor> = listOf(

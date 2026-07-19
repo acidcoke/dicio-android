@@ -679,7 +679,7 @@ class VoiceAccessService : AccessibilityService() {
             val view = GridOverlayView(this)
             view.applyOpacity(gridOpacity)
             try {
-                wm.addView(view, labelOverlayParams())
+                wm.addView(view, gridOverlayParams())
                 gridOverlay = view
             } catch (t: Throwable) {
                 Log.e(TAG, "Failed to add grid overlay", t)
@@ -688,6 +688,20 @@ class VoiceAccessService : AccessibilityService() {
         }
         updateGridOverlay()
     }
+
+    @SuppressLint("NewApi") // layoutInDisplayCutoutMode guarded by the SDK_INT checks
+    private fun gridOverlayParams(): WindowManager.LayoutParams =
+        labelOverlayParams().apply {
+            // let the window extend under the status bar / display cutout: otherwise it starts
+            // below them and the grid's first row and column letters get clipped away
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                layoutInDisplayCutoutMode =
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                layoutInDisplayCutoutMode =
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+            }
+        }
 
     private fun updateGridOverlay() {
         gridOverlay?.setState(currentGridGeometry(), subGridCell)

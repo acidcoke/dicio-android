@@ -145,6 +145,11 @@ class GridOverlayView(context: Context) : View(context) {
         // screen → view space using our on-screen origin (same trick as LabelOverlayView)
         val origin = IntArray(2)
         getLocationOnScreen(origin)
+        // the part of the screen this window can actually draw on: on devices where the window
+        // is still inset despite the cutout mode, headers are clamped into this range so they
+        // never get clipped away entirely
+        val visibleTop = origin[1].toFloat()
+        val visibleBottom = visibleTop + this.height
         canvas.save()
         canvas.translate(-origin[0].toFloat(), -origin[1].toFloat())
 
@@ -162,20 +167,25 @@ class GridOverlayView(context: Context) : View(context) {
 
         // column letters along the top (below the status bar so they aren't covered by it) and
         // again along the bottom (above the navigation bar)
-        val topLetterBaseline = statusBarInset() + dp(4f) - textPaint.fontMetrics.ascent
+        val topLetterBaseline =
+            maxOf(statusBarInset(), visibleTop) + dp(4f) - textPaint.fontMetrics.ascent
         val bottomLetterBaseline =
-            height - navigationBarInset() - dp(4f) - textPaint.fontMetrics.descent
+            minOf(height - navigationBarInset(), visibleBottom) - dp(4f) -
+                textPaint.fontMetrics.descent
         for (col in 0 until geo.cols) {
             val letter = ('a' + col).toString()
             val x = (col + 0.5f) * geo.cellSize
             canvas.drawHaloText(letter, x, topLetterBaseline, small = false)
             canvas.drawHaloText(letter, x, bottomLetterBaseline, small = false)
         }
-        // row numbers just inside the left and right edges, vertically centered in each row
+        // row numbers just inside the left and right edges, vertically centered in each row (the
+        // first row's number is pushed down if its center falls above the drawable area)
         val textCenterOffset = (textPaint.fontMetrics.descent + textPaint.fontMetrics.ascent) / 2f
+        val minNumberBaseline = visibleTop + dp(2f) - textPaint.fontMetrics.ascent
         for (row in 0 until geo.rows) {
             val number = (row + 1).toString()
-            val y = geo.cellRect(0, row).centerY() - textCenterOffset
+            val y = (geo.cellRect(0, row).centerY() - textCenterOffset)
+                .coerceAtLeast(minNumberBaseline)
             canvas.drawHaloText(number, dp(12f), y, small = false)
             canvas.drawHaloText(number, width - dp(12f), y, small = false)
         }
