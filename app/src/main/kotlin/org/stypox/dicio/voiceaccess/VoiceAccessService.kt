@@ -658,10 +658,11 @@ class VoiceAccessService : AccessibilityService() {
 
     /** Builds the geometry fresh from the real display size, so rotation self-heals. */
     private fun currentGridGeometry(): GridGeometry {
+        val topInset = statusBarInset()
         val wm = windowManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && wm != null) {
             val bounds = wm.currentWindowMetrics.bounds
-            return GridGeometry(bounds.width(), bounds.height())
+            return GridGeometry(bounds.width(), bounds.height(), topInset)
         }
         val metrics = android.util.DisplayMetrics()
         @Suppress("DEPRECATION")
@@ -669,8 +670,23 @@ class VoiceAccessService : AccessibilityService() {
             ?: return GridGeometry(
                 resources.displayMetrics.widthPixels,
                 resources.displayMetrics.heightPixels,
+                topInset,
             )
-        return GridGeometry(metrics.widthPixels, metrics.heightPixels)
+        return GridGeometry(metrics.widthPixels, metrics.heightPixels, topInset)
+    }
+
+    /** Height of the status bar in screen coordinates, so the grid can start below it. */
+    private fun statusBarInset(): Float {
+        val wm = windowManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && wm != null) {
+            return wm.currentWindowMetrics.windowInsets
+                .getInsets(android.view.WindowInsets.Type.statusBars()).top.toFloat()
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            @Suppress("DEPRECATION")
+            gridOverlay?.rootWindowInsets?.systemWindowInsetTop?.let { return it.toFloat() }
+        }
+        return GridOverlayView.FALLBACK_STATUS_BAR_DP * resources.displayMetrics.density
     }
 
     private fun addGridOverlay() {

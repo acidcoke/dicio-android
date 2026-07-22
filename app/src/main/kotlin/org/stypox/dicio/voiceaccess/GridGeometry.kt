@@ -6,22 +6,27 @@ import kotlin.math.ceil
 
 /**
  * Pure math for the chess-notation grid overlay: [COLS] square columns spanning the screen width,
- * with as many rows as needed to cover the screen height (the bottom row may be clamped shorter).
- * All coordinates are in screen space, the same space used by tap gestures, so a cell center can be
- * fed directly into a dispatched tap.
+ * with as many rows as needed to cover the screen height below [topInset] (the bottom row may be
+ * clamped shorter). The grid starts at [topInset] — the status bar height — so the first row is
+ * never hidden underneath the status bar. All coordinates are in screen space, the same space used
+ * by tap gestures, so a cell center can be fed directly into a dispatched tap.
  */
-class GridGeometry(val screenWidth: Int, val screenHeight: Int) {
+class GridGeometry(
+    val screenWidth: Int,
+    val screenHeight: Int,
+    val topInset: Float = 0f,
+) {
 
     val cols = COLS
     val cellSize = screenWidth / COLS.toFloat()
-    val rows = ceil(screenHeight / cellSize).toInt()
+    val rows = ceil((screenHeight - topInset) / cellSize).toInt()
 
     /** Rect of the cell at 0-based ([col], [row]); the bottom row is clamped to the screen. */
     fun cellRect(col: Int, row: Int): RectF = RectF(
         col * cellSize,
-        row * cellSize,
+        topInset + row * cellSize,
         (col + 1) * cellSize,
-        ((row + 1) * cellSize).coerceAtMost(screenHeight.toFloat()),
+        (topInset + (row + 1) * cellSize).coerceAtMost(screenHeight.toFloat()),
     )
 
     fun cellCenter(col: Int, row: Int): PointF =
