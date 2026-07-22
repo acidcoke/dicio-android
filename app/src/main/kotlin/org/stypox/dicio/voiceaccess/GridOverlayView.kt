@@ -113,18 +113,6 @@ class GridOverlayView(context: Context) : View(context) {
         drawText(text, x, y, if (small) subTextPaint else textPaint)
     }
 
-    /** Top inset of the status bar in screen coordinates, so the column letters sit below it. */
-    private fun statusBarInset(): Float {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            rootWindowInsets?.getInsets(WindowInsets.Type.statusBars())?.top
-                ?.let { return it.toFloat() }
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            @Suppress("DEPRECATION")
-            rootWindowInsets?.systemWindowInsetTop?.let { return it.toFloat() }
-        }
-        return dp(FALLBACK_STATUS_BAR_DP)
-    }
-
     /** Bottom inset of the navigation bar, so the bottom row of letters sits above it. */
     private fun navigationBarInset(): Float {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -158,17 +146,18 @@ class GridOverlayView(context: Context) : View(context) {
 
         for (col in 1 until geo.cols) {
             val x = col * geo.cellSize
-            canvas.drawHaloLine(x, 0f, x, height)
+            canvas.drawHaloLine(x, geo.topInset, x, height)
         }
-        for (row in 1 until geo.rows) {
-            val y = row * geo.cellSize
+        // the grid starts below the status bar, so the first row needs a top boundary line too
+        for (row in 0 until geo.rows) {
+            val y = geo.topInset + row * geo.cellSize
             canvas.drawHaloLine(0f, y, width, y)
         }
 
-        // column letters along the top (below the status bar so they aren't covered by it) and
-        // again along the bottom (above the navigation bar)
+        // column letters along the top of the grid (which starts below the status bar, so they
+        // aren't covered by it) and again along the bottom (above the navigation bar)
         val topLetterBaseline =
-            maxOf(statusBarInset(), visibleTop) + dp(4f) - textPaint.fontMetrics.ascent
+            maxOf(geo.topInset, visibleTop) + dp(4f) - textPaint.fontMetrics.ascent
         val bottomLetterBaseline =
             minOf(height - navigationBarInset(), visibleBottom) - dp(4f) -
                 textPaint.fontMetrics.descent
@@ -237,7 +226,7 @@ class GridOverlayView(context: Context) : View(context) {
         private const val GREY_TONE = 0xE0
         private const val DARK_TONE = 0x20
         // used when the window insets are not available yet
-        private const val FALLBACK_STATUS_BAR_DP = 28f
+        const val FALLBACK_STATUS_BAR_DP = 28f
         private const val FALLBACK_NAVIGATION_BAR_DP = 24f
     }
 }
