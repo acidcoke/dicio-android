@@ -21,20 +21,18 @@
          phonetic PIN words near-perfect. One word per token; localized per language. -->
     <string-array name="va_command_grammar">
         <item>press</item><item>tap</item><item>type</item>
-        <item>click</item><item>select</item><item>choose</item><item>hit</item>
-        <item>touch</item><item>pick</item><item>mouse</item>
+        <item>click</item><item>mouse</item>
         <item>go</item><item>back</item><item>home</item>
-        <item>scroll</item><item>up</item><item>upward</item><item>upwards</item>
-        <item>down</item><item>downward</item><item>downwards</item>
+        <item>scroll</item><item>up</item>
+        <item>down</item>
         <item>left</item><item>right</item><item>swipe</item><item>flick</item>
         <item>delete</item><item>backspace</item><item>clear</item><item>remove</item>
         <item>enter</item><item>confirm</item><item>submit</item><item>done</item>
         <item>ok</item><item>accept</item>
         <item>shift</item><item>space</item>
-        <item>stop</item><item>cancel</item><item>exit</item><item>quit</item>
-        <item>dismiss</item><item>listening</item><item>voice</item><item>access</item>
-        <item>never</item><item>mind</item>
-        <item>number</item><item>item</item>
+        <item>stop</item><item>cancel</item><item>quit</item>
+        <item>listening</item><item>voice</item><item>access</item>
+        <item>number</item>
         <item>one</item><item>two</item><item>three</item><item>four</item>
         <item>five</item><item>six</item><item>seven</item><item>eight</item>
         <item>nine</item><item>ten</item><item>eleven</item><item>twelve</item>
@@ -50,11 +48,11 @@
         <item>torch</item><item>flash</item><item>light</item>
         <!-- joke -->
         <item>tell</item><item>me</item><item>say</item><item>joke</item><item>jokes</item>
-        <item>funny</item><item>pun</item><item>gag</item><item>prank</item><item>laugh</item>
+        <item>funny</item><item>pun</item><item>gag</item><item>prank</item>
         <item>something</item><item>fun</item>
         <!-- labels -->
-        <item>show</item><item>display</item><item>reveal</item><item>labels</item>
-        <item>numbers</item><item>grid</item><item>tags</item><item>hide</item>
+        <item>show</item><item>display</item>
+        <item>numbers</item><item>grid</item><item>hide</item>
         <!-- grid columns (the NATO synonyms are already in va_pin_words) -->
         <item>a</item><item>b</item><item>c</item><item>d</item>
         <item>e</item><item>f</item><item>g</item><item>h</item>
@@ -68,19 +66,18 @@
         <item>film</item><item>player</item><item>continue</item><item>playing</item>
         <item>pause</item><item>halt</item><item>hold</item><item>last</item>
         <item>replay</item><item>rewind</item><item>skip</item><item>next</item>
-        <item>following</item><item>jump</item><item>forward</item><item>queue</item>
+        <item>following</item><item>jump</item>
         <item>in</item>
         <!-- notifications / quick settings -->
         <!-- NOTE: "open" is intentionally NOT in the grammar: it is also the OpenSkill trigger for
              arbitrary (open-vocab) app names, and including it makes the grammar recognizer force-fit
              app names onto grammar words (e.g. "open signal" -> "open second"). The free recognizer
              handles "open notifications" fine since both words are common vocabulary. -->
-        <item>expand</item><item>notification</item>
-        <item>notifications</item><item>bar</item><item>shade</item><item>panel</item>
-        <item>pull</item><item>drag</item><item>quick</item><item>settings</item>
+        <item>notification</item>
+        <item>notifications</item><item>quick</item><item>settings</item>
         <!-- yes / no -->
-        <item>yes</item><item>sure</item><item>certainly</item><item>affirmative</item>
-        <item>proceed</item><item>no</item><item>not</item><item>negative</item>
+        <item>yes</item><item>certainly</item><item>affirmative</item>
+        <item>proceed</item><item>no</item><item>negative</item>
         <!-- weather -->
         <item>weather</item><item>how</item><item>cold</item><item>cool</item>
         <item>warm</item><item>hot</item><item>sunny</item><item>rainy</item>

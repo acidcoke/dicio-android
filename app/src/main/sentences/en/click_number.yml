@@ -1,5 +1,5 @@
 explicit:
-  - tap|press|number .number.
+  - tap|press|number|numbers .number.
 
 hold:
   - hold|(long press) .number.

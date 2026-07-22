@@ -25,9 +25,12 @@
         <item>gehe</item><item>geh</item><item>zurück</item>
         <item>zum</item><item>startbildschirm</item>
         <item>scrolle</item><item>scroll</item><item>fahre</item><item>fahr</item>
+        <!-- "nach" wird von scroll/swipe/flick links|rechts benötigt (z.B. "nach links") -->
+        <item>nach</item>
         <item>oben</item><item>hoch</item><item>rauf</item><item>unten</item>
         <item>runter</item><item>herunter</item><item>links</item><item>rechts</item>
         <item>scrollen</item><item>gehen</item><item>fahren</item>
+        <item>schleudere</item><item>schleuder</item>
         <item>bagbord</item><item>steuerbord</item>
         <item>wische</item><item>wisch</item><item>ziehe</item><item>zieh</item><item>sie</item>
         <item>löschen</item><item>entfernen</item><item>rücktaste</item>
@@ -39,7 +42,7 @@
         <item>abbrechen</item><item>das</item><item>zuhören</item><item>hör</item>
         <item>höre</item><item>auf</item><item>aufhören</item><item>schluss</item>
         <item>jetzt</item>
-        <item>nummer</item><item>punkt</item>
+        <item>nummer</item>
         <item>eins</item><item>zwei</item><item>drei</item><item>vier</item>
         <item>fünf</item><item>sechs</item><item>sieben</item><item>acht</item>
         <item>neun</item><item>zehn</item><item>elf</item><item>zwölf</item>
