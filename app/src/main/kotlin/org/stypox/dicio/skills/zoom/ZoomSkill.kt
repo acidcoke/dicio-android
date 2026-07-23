@@ -38,7 +38,9 @@ class ZoomSkill(
         // a cell reference only makes sense while the grid is up; the PIN pad wins over the grid
         // because it shares the NATO letter words and is the more security-sensitive surface
         val service = VoiceAccessService.instance
-        if (service == null || !service.isGridActive() || service.isPinModeActive()) {
+        if (cellText == null || service == null || !service.isGridActive() ||
+            service.isPinModeActive()
+        ) {
             pendingCell = null
             return Pair(AlwaysWorstScore, result)
         }
