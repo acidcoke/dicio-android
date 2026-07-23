@@ -23,7 +23,7 @@ delete:
   - löschen|entfernen|rücktaste
 
 enter:
-  - eingabe|bestätigen|fertig|ok|enter
+  - eingabe|enter
 
 shift:
   - umschalt|umschalttaste|shift

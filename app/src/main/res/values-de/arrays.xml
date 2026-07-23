@@ -34,13 +34,12 @@
         <item>bagbord</item><item>steuerbord</item>
         <item>wische</item><item>wisch</item><item>ziehe</item><item>zieh</item><item>sie</item>
         <item>löschen</item><item>entfernen</item><item>rücktaste</item>
-        <item>eingabe</item><item>bestätigen</item><item>fertig</item><item>ok</item>
-        <item>enter</item>
+        <item>eingabe</item><item>enter</item>
         <item>umschalt</item><item>umschalttaste</item><item>shift</item>
         <item>leertaste</item><item>leerzeichen</item><item>space</item>
         <item>stopp</item><item>stoppe</item><item>beende</item><item>beenden</item>
-        <item>abbrechen</item><item>das</item><item>zuhören</item><item>hör</item>
-        <item>höre</item><item>auf</item><item>aufhören</item><item>schluss</item>
+        <item>das</item><item>zuhören</item><item>hör</item>
+        <item>höre</item><item>auf</item><item>aufhören</item>
         <item>jetzt</item>
         <item>nummer</item>
         <item>eins</item><item>zwei</item><item>drei</item><item>vier</item>
@@ -122,7 +121,7 @@
         <item>einstellungen</item>
         <!-- Ja / Nein -->
         <item>ja</item><item>bitte</item><item>allerdings</item><item>jawohl</item>
-        <item>jawoll</item><item>weitermachen</item><item>weiter</item><item>positiv</item>
+        <item>jawoll</item><item>positiv</item>
         <item>nein</item><item>danke</item><item>nee</item><item>no</item>
         <item>nope</item><item>lass</item><item>negativ</item>
         <!-- Wetter -->

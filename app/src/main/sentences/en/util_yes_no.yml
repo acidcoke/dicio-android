@@ -1,5 +1,5 @@
 yes:
-  - yes|(for sure)|certainly|(go for it)|affirmative|proceed|continue|(lets|(let s) go)
+  - yes|(for sure)|certainly|(go for it)|affirmative|proceed|(lets|(let s) go)
 
 no:
-  - no|dont|(don t)|(do not)|stop|quit|negative
+  - no|dont|(don t)|(do not)|quit|negative

@@ -27,8 +27,7 @@
         <item>down</item>
         <item>left</item><item>right</item><item>swipe</item><item>flick</item>
         <item>delete</item><item>backspace</item><item>clear</item><item>remove</item>
-        <item>enter</item><item>confirm</item><item>submit</item><item>done</item>
-        <item>ok</item><item>accept</item>
+        <item>enter</item>
         <item>shift</item><item>space</item>
         <item>stop</item><item>cancel</item><item>quit</item>
         <item>listening</item><item>voice</item><item>access</item>
