@@ -1,0 +1,17 @@
+zoom_in:
+  - zoom in
+  - enlarge
+
+zoom_out:
+  - zoom out
+  - shrink
+
+zoom_in_at:
+  - zoom in .cell.
+  - enlarge .cell.
+  - .cell. zoom in
+
+zoom_out_at:
+  - zoom out .cell.
+  - shrink .cell.
+  - .cell. zoom out

@@ -84,6 +84,20 @@ skills:
           - id: cell
             type: string
 
+  - id: zoom
+    specificity: high
+    sentences:
+      - id: zoom_in
+      - id: zoom_out
+      - id: zoom_in_at
+        captures:
+          - id: cell
+            type: string
+      - id: zoom_out_at
+        captures:
+          - id: cell
+            type: string
+
   - id: click_number
     specificity: high
     sentences:
