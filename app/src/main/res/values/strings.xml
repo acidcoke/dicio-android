@@ -227,6 +227,15 @@
     <string name="skill_grid_out_of_range">%1$s is off the grid</string>
     <string name="skill_grid_not_understood">Which cell?</string>
     <string name="skill_grid_service_disabled">Voice Access is not enabled</string>
+    <string name="skill_name_zoom">Zoom</string>
+    <string name="skill_sentence_example_zoom">Zoom in</string>
+    <string name="skill_zoom_in">Zoomed in</string>
+    <string name="skill_zoom_out">Zoomed out</string>
+    <string name="skill_zoom_at_in">Zoomed in on %1$s</string>
+    <string name="skill_zoom_at_out">Zoomed out on %1$s</string>
+    <string name="skill_zoom_out_of_range">%1$s is off the grid</string>
+    <string name="skill_zoom_not_understood">Which cell?</string>
+    <string name="skill_zoom_service_disabled">Voice Access is not enabled</string>
     <string name="skill_name_click_number">Tap a number</string>
     <string name="skill_sentence_example_click_number">Tap 5</string>
     <string name="skill_click_number_tapped">Tapped %1$d</string>

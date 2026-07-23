@@ -9,7 +9,6 @@ import org.dicio.skill.skill.SkillOutput
 import org.dicio.skill.standard.StandardRecognizerData
 import org.dicio.skill.standard.StandardRecognizerSkill
 import org.stypox.dicio.sentences.Sentences.Grid
-import org.stypox.dicio.util.SpokenNumberParser
 import org.stypox.dicio.voiceaccess.VoiceAccessService
 
 class GridSkill(
@@ -54,10 +53,8 @@ class GridSkill(
     }
 
     /**
-     * Parses a cell utterance: an optional press verb, then one column letter (a plain letter a–h
-     * or a NATO/phonetic word), then a spoken row number. Any deviation returns null. NATO words
-     * map through the service's full 10-word list on purpose: "india 2" is claimed and answered
-     * with out-of-range instead of leaking to another skill.
+     * Parses a cell utterance: an optional press verb, then a column/row reference resolved by
+     * [GridCellReference]. Any deviation returns null.
      */
     private fun parseCell(
         ctx: SkillContext,
@@ -74,20 +71,8 @@ class GridSkill(
             i++
         }
 
-        if (i >= tokens.size) return null
-        val letter = tokens[i]
-        val col = if (letter.length == 1 && letter[0] in 'a'..'h') {
-            letter[0] - 'a'
-        } else {
-            service.pinSlotForWord(letter) ?: return null
-        }
-        i++
-
-        if (i >= tokens.size) return null
-        val row = SpokenNumberParser.parse(ctx, tokens.subList(i, tokens.size).joinToString(" "))
+        val (col, row) = GridCellReference.parse(ctx, service, tokens.subList(i, tokens.size))
             ?: return null
-        if (row < 1) return null
-
         return PendingCell(col, row, explicitPress)
     }
 

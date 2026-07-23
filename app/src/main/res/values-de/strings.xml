@@ -325,6 +325,15 @@
     <string name="skill_grid_out_of_range">%1$s liegt außerhalb des Rasters</string>
     <string name="skill_grid_not_understood">Welche Zelle?</string>
     <string name="skill_grid_service_disabled">Voice Access ist nicht aktiviert</string>
+    <string name="skill_name_zoom">Zoom</string>
+    <string name="skill_sentence_example_zoom">Vergrößern</string>
+    <string name="skill_zoom_in">Vergrößert</string>
+    <string name="skill_zoom_out">Verkleinert</string>
+    <string name="skill_zoom_at_in">%1$s vergrößert</string>
+    <string name="skill_zoom_at_out">%1$s verkleinert</string>
+    <string name="skill_zoom_out_of_range">%1$s liegt außerhalb des Rasters</string>
+    <string name="skill_zoom_not_understood">Welche Zelle?</string>
+    <string name="skill_zoom_service_disabled">Voice Access ist nicht aktiviert</string>
     <string name="skill_name_click_number">Eine Nummer antippen</string>
     <string name="skill_sentence_example_click_number">Tippe 5</string>
     <string name="skill_name_stop_listening">Zuhören beenden</string>

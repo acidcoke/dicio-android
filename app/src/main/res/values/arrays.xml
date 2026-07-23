@@ -55,6 +55,8 @@
         <!-- grid columns (the NATO synonyms are already in va_pin_words) -->
         <item>a</item><item>b</item><item>c</item><item>d</item>
         <item>e</item><item>f</item><item>g</item><item>h</item>
+        <!-- zoom ("in"/"out" are already in the grammar) -->
+        <item>zoom</item><item>enlarge</item><item>shrink</item>
         <!-- start/stop listening -->
         <item>start</item><item>wake</item><item>word</item><item>mute</item>
         <item>unmute</item><item>microphone</item>

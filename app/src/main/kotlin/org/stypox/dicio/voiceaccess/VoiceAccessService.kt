@@ -297,6 +297,67 @@ class VoiceAccessService : AccessibilityService() {
         dispatchGesture(gesture, null, null)
     }
 
+    // ---------------------------------------------------------------- zooming
+
+    /** Zooms in ([zoomIn] true) or out at the screen center with a two-finger pinch gesture. */
+    fun zoom(zoomIn: Boolean) = runOnMain {
+        val dm = resources.displayMetrics
+        dispatchPinch(dm.widthPixels / 2f, dm.heightPixels / 2f, zoomIn)
+    }
+
+    /**
+     * Zooms in/out focused on the given grid cell (0-based [col], 1-based [row]). Returns false if
+     * the cell is outside the current grid (mirroring [handleGridCell]'s range check), true once the
+     * pinch is dispatched.
+     */
+    fun zoomAtCell(col: Int, row: Int, zoomIn: Boolean): Boolean {
+        val geometry = currentGridGeometry()
+        if (col >= geometry.cols || row < 1 || row > geometry.rows) {
+            return false
+        }
+        val center = geometry.cellCenter(col, row - 1)
+        runOnMain { dispatchPinch(center.x, center.y, zoomIn) }
+        return true
+    }
+
+    /**
+     * Dispatches a two-finger pinch/spread centered on ([focusX], [focusY]): two strokes running
+     * concurrently along a vertical axis through the focus. Spreading apart zooms in, drawing
+     * together zooms out. Finger endpoints are clamped to the screen so a focus near an edge still
+     * produces a valid gesture.
+     */
+    @SuppressLint("NewApi") // dispatchGesture/GestureDescription guarded by the SDK_INT check
+    private fun dispatchPinch(focusX: Float, focusY: Float, zoomIn: Boolean) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return
+        val dm = resources.displayMetrics
+        val minDim = minOf(dm.widthPixels, dm.heightPixels).toFloat()
+        val startGap = (if (zoomIn) PINCH_GAP_CLOSE else PINCH_GAP_FAR) * minDim
+        val endGap = (if (zoomIn) PINCH_GAP_FAR else PINCH_GAP_CLOSE) * minDim
+        val maxY = dm.heightPixels.toFloat()
+
+        fun clampY(y: Float) = y.coerceIn(0f, maxY)
+
+        // finger A above the focus, finger B below it
+        val topStart = android.graphics.Path().apply { moveTo(focusX, clampY(focusY - startGap)) }
+            .also { it.lineTo(focusX, clampY(focusY - endGap)) }
+        val bottomStart = android.graphics.Path().apply { moveTo(focusX, clampY(focusY + startGap)) }
+            .also { it.lineTo(focusX, clampY(focusY + endGap)) }
+
+        val gesture = android.accessibilityservice.GestureDescription.Builder()
+            .addStroke(
+                android.accessibilityservice.GestureDescription.StrokeDescription(
+                    topStart, 0, PINCH_DURATION_MS
+                )
+            )
+            .addStroke(
+                android.accessibilityservice.GestureDescription.StrokeDescription(
+                    bottomStart, 0, PINCH_DURATION_MS
+                )
+            )
+            .build()
+        dispatchGesture(gesture, null, null)
+    }
+
     // ---------------------------------------------------------------- numbered labels
 
     fun areLabelsVisible(): Boolean = labelsVisible
@@ -1071,6 +1132,12 @@ class VoiceAccessService : AccessibilityService() {
         private const val SWIPE_DURATION_MS = 400L
         // default swipe distance as a portion of the screen, if no amount is given
         const val DEFAULT_SWIPE_FRACTION = 0.5f
+        // two-finger pinch/spread: how long the fingers travel, and the near/far half-gaps between
+        // the two fingers (as a portion of the smaller screen dimension) at the start and end of the
+        // gesture. Spreading from CLOSE to FAR zooms in; pinching from FAR to CLOSE zooms out.
+        private const val PINCH_DURATION_MS = 300L
+        private const val PINCH_GAP_CLOSE = 0.05f
+        private const val PINCH_GAP_FAR = 0.30f
         // sentinel LabeledNode.number values for the PIN-pad delete/enter keys (not real slots)
         private const val PIN_NUM_DELETE = -1
         private const val PIN_NUM_ENTER = -2

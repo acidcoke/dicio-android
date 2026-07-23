@@ -1,0 +1,17 @@
+zoom_in:
+  - vergrößer<e|n>
+  - <hinein|rein|heran>zoomen
+
+zoom_out:
+  - verkleiner<e|n>
+  - <heraus|raus|weg>zoomen
+
+zoom_in_at:
+  - vergrößer<e|n> .cell.
+  - .cell. vergrößern
+  - .cell. heranzoomen
+
+zoom_out_at:
+  - verkleiner<e|n> .cell.
+  - .cell. verkleinern
+  - .cell. wegzoomen
