@@ -184,9 +184,10 @@ class PinKeySkill(
             "wähl", "wähle", "waehl", "waehle",
         )
 
-        // the "enter" word and synonyms (the only non-slot action allowed in a chain)
-        private val EN_ENTERS = setOf("enter", "confirm", "submit", "done", "ok", "accept")
-        private val DE_ENTERS = setOf("eingabe", "bestätigen", "bestaetigen", "fertig", "ok", "enter")
+        // the "enter" word (the only non-slot action allowed in a chain); kept synonym-free so it
+        // reliably triggers only the enter key
+        private val EN_ENTERS = setOf("enter")
+        private val DE_ENTERS = setOf("eingabe", "enter")
 
         // "delete" words: recognized so they are not treated as foreign, but never chainable
         private val EN_DELETES = setOf("delete", "backspace", "clear", "remove")
