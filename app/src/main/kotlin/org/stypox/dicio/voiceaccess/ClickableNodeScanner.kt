@@ -13,8 +13,6 @@ data class LabeledNode(
     val node: AccessibilityNodeInfo,
     val bounds: Rect,
     val text: String = number.toString(),
-    // PIN labels sit horizontally centered above the key; numbered labels sit at the corner
-    val centered: Boolean = false,
 )
 
 /** A single key of a detected numeric PIN pad. */

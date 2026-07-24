@@ -84,15 +84,10 @@ class LabelOverlayView(context: Context) : View(context) {
             val textWidth = textPaint.measureText(text)
             val chipWidth = (textWidth + chipHPadding * 2).coerceAtLeast(chipHeight)
 
-            // PIN labels center horizontally over the key; numbered labels anchor at its left corner
-            val anchorLeft = label.bounds.left - originX
+            // every chip is centered horizontally over its element
             val anchorTop = label.bounds.top - originY
             val anchorCenterX = label.bounds.exactCenterX() - originX
-            var left = if (label.centered) {
-                anchorCenterX - chipWidth / 2f
-            } else {
-                anchorLeft.toFloat()
-            }
+            var left = anchorCenterX - chipWidth / 2f
             var top = anchorTop.toFloat() - chipHeight + chipDip
             if (top < 0f) {
                 // not enough room above: place it just inside the top edge of the element

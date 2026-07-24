@@ -495,22 +495,22 @@ class VoiceAccessService : AccessibilityService() {
         val keyBounds = HashSet<Rect>()
 
         keyboardEnterNode = keys.enterKey?.let {
-            LabeledNode(KB_NUM_ENTER, it.node, it.bounds, pinEnterLabel, centered = true)
+            LabeledNode(KB_NUM_ENTER, it.node, it.bounds, pinEnterLabel)
         }
         keyboardEnterNode?.let { nodes.add(it); keyBounds.add(it.bounds) }
 
         keyboardDeleteNode = keys.deleteKey?.let {
-            LabeledNode(KB_NUM_DELETE, it.node, it.bounds, pinDeleteLabel, centered = true)
+            LabeledNode(KB_NUM_DELETE, it.node, it.bounds, pinDeleteLabel)
         }
         keyboardDeleteNode?.let { nodes.add(it); keyBounds.add(it.bounds) }
 
         keyboardShiftNode = keys.shiftKey?.let {
-            LabeledNode(KB_NUM_SHIFT, it.node, it.bounds, keyboardShiftLabel, centered = true)
+            LabeledNode(KB_NUM_SHIFT, it.node, it.bounds, keyboardShiftLabel)
         }
         keyboardShiftNode?.let { nodes.add(it); keyBounds.add(it.bounds) }
 
         keyboardSpaceNode = keys.spaceKey?.let {
-            LabeledNode(KB_NUM_SPACE, it.node, it.bounds, keyboardSpaceLabel, centered = true)
+            LabeledNode(KB_NUM_SPACE, it.node, it.bounds, keyboardSpaceLabel)
         }
         keyboardSpaceNode?.let { nodes.add(it); keyBounds.add(it.bounds) }
 
@@ -555,14 +555,14 @@ class VoiceAccessService : AccessibilityService() {
         for ((digit, key) in pad.digitNodes) {
             val slot = digitToSlot[digit] ?: continue
             if (slot !in pinWords.indices) continue
-            val labeled = LabeledNode(slot, key.node, key.bounds, pinWords[slot], centered = true)
+            val labeled = LabeledNode(slot, key.node, key.bounds, pinWords[slot])
             pinSlotToNode[slot] = labeled
             nodes.add(labeled)
             pinBounds.add(key.bounds)
         }
-        pinDeleteNode = pad.deleteKey?.let { LabeledNode(PIN_NUM_DELETE, it.node, it.bounds, pinDeleteLabel, centered = true) }
+        pinDeleteNode = pad.deleteKey?.let { LabeledNode(PIN_NUM_DELETE, it.node, it.bounds, pinDeleteLabel) }
         pinDeleteNode?.let { nodes.add(it); pinBounds.add(it.bounds) }
-        pinEnterNode = pad.enterKey?.let { LabeledNode(PIN_NUM_ENTER, it.node, it.bounds, pinEnterLabel, centered = true) }
+        pinEnterNode = pad.enterKey?.let { LabeledNode(PIN_NUM_ENTER, it.node, it.bounds, pinEnterLabel) }
         pinEnterNode?.let { nodes.add(it); pinBounds.add(it.bounds) }
 
         // keep ordinary numbered labels for non-keypad actions (e.g. the lockscreen "Notruf"/
