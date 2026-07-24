@@ -25,6 +25,15 @@ class ZoomSkill(
     override fun score(ctx: SkillContext, input: String): Pair<Score, Zoom> {
         val (score, result) = super.score(ctx, input)
 
+        // The standard recognizer allows partial/fuzzy matches, so a bare grid cell like "alpha 2"
+        // can be matched to ".cell. zoom in" with the verb words missing. Only act when the utterance
+        // actually contains a zoom keyword; otherwise defer (e.g. so "alpha 2" opens the grid
+        // sub-grid instead of being hijacked as a zoom-at-cell command).
+        if (!hasZoomKeyword(ctx.sentencesLanguage, input)) {
+            pendingCell = null
+            return Pair(AlwaysWorstScore, result)
+        }
+
         // plain (center) zoom always passes through and works anywhere the service is running
         val cellText = when (result) {
             is Zoom.ZoomInAt -> result.cell
@@ -80,6 +89,20 @@ class ZoomSkill(
             ZoomOutput.Zoomed(zoomIn = zoomIn, cell = name)
         } else {
             ZoomOutput.OutOfRange(name)
+        }
+    }
+
+    companion object {
+        // Substrings that mark an utterance as a zoom command; keep in sync with the zoom words in
+        // app/src/main/sentences/<lang>/zoom.yml. "zoom" covers the compound forms (hineinzoomen,
+        // rauszoomen, …); vergrößer/verkleiner cover the German verbs.
+        private val EN_ZOOM_KEYWORDS = listOf("zoom", "enlarge", "shrink")
+        private val DE_ZOOM_KEYWORDS = listOf("zoom", "vergrößer", "vergrösser", "verkleiner")
+
+        private fun hasZoomKeyword(language: String, input: String): Boolean {
+            val lower = input.lowercase()
+            val keywords = if (language == "de") DE_ZOOM_KEYWORDS else EN_ZOOM_KEYWORDS
+            return keywords.any { lower.contains(it) }
         }
     }
 }
