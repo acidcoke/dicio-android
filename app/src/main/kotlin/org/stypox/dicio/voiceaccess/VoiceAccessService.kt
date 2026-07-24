@@ -302,7 +302,7 @@ class VoiceAccessService : AccessibilityService() {
     /** Zooms in ([zoomIn] true) or out at the screen center with a two-finger pinch gesture. */
     fun zoom(zoomIn: Boolean) = runOnMain {
         val dm = resources.displayMetrics
-        dispatchPinch(dm.widthPixels / 2f, dm.heightPixels / 2f, zoomIn)
+        dispatchThroughGrid { dispatchPinch(dm.widthPixels / 2f, dm.heightPixels / 2f, zoomIn) }
     }
 
     /**
@@ -316,7 +316,7 @@ class VoiceAccessService : AccessibilityService() {
             return false
         }
         val center = geometry.cellCenter(col, row - 1)
-        runOnMain { dispatchPinch(center.x, center.y, zoomIn) }
+        runOnMain { dispatchThroughGrid { dispatchPinch(center.x, center.y, zoomIn) } }
         return true
     }
 
@@ -692,8 +692,7 @@ class VoiceAccessService : AccessibilityService() {
             subGridCell = null
             val center = geometry.subCellCenter(sub, col, row - 1)
             runOnMain {
-                updateGridOverlay()
-                dispatchTapAt(center.x, center.y, longPress = false)
+                dispatchThroughGrid { dispatchTapAt(center.x, center.y, longPress = false) }
             }
             return GridCellResult.TAPPED
         }
@@ -706,8 +705,7 @@ class VoiceAccessService : AccessibilityService() {
             subGridCell = null
             val center = geometry.cellCenter(col, row - 1)
             runOnMain {
-                updateGridOverlay()
-                dispatchTapAt(center.x, center.y, longPress = false)
+                dispatchThroughGrid { dispatchTapAt(center.x, center.y, longPress = false) }
             }
             GridCellResult.TAPPED
         } else {
@@ -715,6 +713,26 @@ class VoiceAccessService : AccessibilityService() {
             runOnMain { updateGridOverlay() }
             GridCellResult.SUB_SHOWN
         }
+    }
+
+    /**
+     * Runs [gesture] as if the grid overlay weren't there: the overlay is removed first so it no
+     * longer obscures the target window (Chrome and other touch-filtering surfaces drop injected
+     * gestures that land under an overlay), the gesture is dispatched once the window is really
+     * gone, then the overlay is restored if the grid is still meant to be visible. Must be called
+     * on the main thread.
+     */
+    private fun dispatchThroughGrid(gesture: () -> Unit) {
+        val restore = gridVisible && gridOverlay != null
+        removeGridOverlay()
+        handler.postDelayed({
+            gesture()
+            if (restore) {
+                handler.postDelayed({
+                    if (gridVisible && sessionActive && gridOverlay == null) addGridOverlay()
+                }, GRID_RESTORE_AFTER_TAP_MS)
+            }
+        }, GRID_HIDE_BEFORE_TAP_MS)
     }
 
     /** Builds the geometry fresh from the real display size, so rotation self-heals. */
@@ -1138,6 +1156,11 @@ class VoiceAccessService : AccessibilityService() {
         private const val PINCH_DURATION_MS = 300L
         private const val PINCH_GAP_CLOSE = 0.05f
         private const val PINCH_GAP_FAR = 0.30f
+        // Chrome (and other surfaces that filter obscured touches) drop injected gestures that land
+        // under our accessibility overlay. Remove the grid overlay first, wait this long for the
+        // window to actually leave the screen, dispatch the gesture, then restore the overlay.
+        private const val GRID_HIDE_BEFORE_TAP_MS = 60L
+        private const val GRID_RESTORE_AFTER_TAP_MS = 400L
         // sentinel LabeledNode.number values for the PIN-pad delete/enter keys (not real slots)
         private const val PIN_NUM_DELETE = -1
         private const val PIN_NUM_ENTER = -2
