@@ -91,6 +91,8 @@ object ClickableNodeScanner {
     private class Accumulator {
         val labels = ArrayList<Pair<AccessibilityNodeInfo, Rect>>()
         val seenBounds = HashSet<String>()
+        // nodes performClick would actually end up clicking, so we only label each target once
+        val seenClickTargets = HashSet<AccessibilityNodeInfo>()
         val digits = HashMap<Int, PinKeyNode>()
         var hasPasswordField = false
         var deleteKey: PinKeyNode? = null
@@ -156,10 +158,17 @@ object ClickableNodeScanner {
             val bounds = Rect()
             node.getBoundsInScreen(bounds)
             if (!bounds.isEmpty) {
+                // one label per click target: a clickable row and its merely screen-reader-focusable
+                // children (name, preview text, avatar) all trigger the same action, so a second
+                // label there is just noise. Pre-order means the outer node is seen first, putting
+                // the surviving label on the row itself, which is where the tap lands anyway.
+                val target = clickTargetOf(node)
+                val newTarget = target == null || acc.seenClickTargets.add(target)
                 // dedup overlapping items (e.g. a clickable row that also reports a clickable child
                 // at the same bounds) so we don't draw two labels in the same spot
                 val key = "${bounds.left},${bounds.top},${bounds.right},${bounds.bottom}"
-                if (acc.seenBounds.add(key)) {
+                val newBounds = acc.seenBounds.add(key)
+                if (newTarget && newBounds) {
                     acc.labels.add(Pair(node, bounds))
                 }
                 accumulatePinKey(node, bounds, acc, isIme)
@@ -167,6 +176,23 @@ object ClickableNodeScanner {
         }
 
         forEachChild(node) { collectFrom(it, acc, isIme) }
+    }
+
+    /**
+     * The node `VoiceAccessService.performClick` would click for [node]: the first clickable node
+     * from [node] upwards. Null when there is none (performClick falls back to tapping the bounds
+     * there) or when the search runs into a scrollable container, since a scrollable ancestor is
+     * practically never the intended target and merging across one would collapse a whole list into
+     * a single label.
+     */
+    private fun clickTargetOf(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+        var current: AccessibilityNodeInfo? = node
+        while (current != null) {
+            if (current.isClickable) return current
+            if (current.isScrollable) return null
+            current = current.parent
+        }
+        return null
     }
 
     /** Classifies an actionable node as a digit / delete / enter key for PIN detection. */
