@@ -4,6 +4,7 @@ zoom_in:
 
 zoom_out:
   - zoom out
+  - zoom outside
   - shrink
 
 zoom_in_at:
@@ -13,5 +14,7 @@ zoom_in_at:
 
 zoom_out_at:
   - zoom out .cell.
+  - zoom outside .cell.
   - shrink .cell.
   - .cell. zoom out
+  - .cell. zoom outside
