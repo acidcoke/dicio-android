@@ -86,6 +86,10 @@ object ClickableNodeScanner {
     private const val MIN_PIN_DIGITS = 8
     // how deep under an actionable key to look for the digit text (e.g. key View → child TextView)
     private const val DIGIT_SEARCH_DEPTH = 2
+    // how much two candidates must overlap (intersection over union) to count as the same element:
+    // a clickable wrapper around a clickable icon clears this easily, while a genuinely separate
+    // target inside a row (the call button of a chat entry) stays far below it
+    private const val NEAR_DUPLICATE_IOU = 0.5f
 
     /** Mutable accumulator carried through the recursive traversal. */
     private class Accumulator {
@@ -169,7 +173,16 @@ object ClickableNodeScanner {
                 val key = "${bounds.left},${bounds.top},${bounds.right},${bounds.bottom}"
                 val newBounds = acc.seenBounds.add(key)
                 if (newTarget && newBounds) {
-                    acc.labels.add(Pair(node, bounds))
+                    val duplicate = indexOfNearDuplicate(acc.labels, bounds)
+                    if (duplicate < 0) {
+                        acc.labels.add(Pair(node, bounds))
+                    } else if (!acc.labels[duplicate].first.isClickable && node.isClickable) {
+                        // same area, but the node we kept is merely focusable: take the clickable
+                        // one so performClick uses its accessibility action instead of a tap
+                        acc.labels[duplicate] = Pair(node, bounds)
+                    }
+                    // otherwise drop it: a clickable wrapper and its clickable icon (WhatsApp's
+                    // chat-list avatar) trigger the same action and don't need two chips
                 }
                 accumulatePinKey(node, bounds, acc, isIme)
             }
@@ -194,6 +207,27 @@ object ClickableNodeScanner {
         }
         return null
     }
+
+    /** Area overlap of [a] and [b] as intersection over union, 0 when they do not intersect. */
+    private fun overlapRatio(a: Rect, b: Rect): Float {
+        val width = minOf(a.right, b.right) - maxOf(a.left, b.left)
+        val height = minOf(a.bottom, b.bottom) - maxOf(a.top, b.top)
+        if (width <= 0 || height <= 0) return 0f
+        val intersection = width.toLong() * height.toLong()
+        val union = a.width().toLong() * a.height() + b.width().toLong() * b.height() - intersection
+        return if (union <= 0L) 0f else intersection.toFloat() / union
+    }
+
+    /**
+     * Index of the already accepted label that covers essentially the same area as [bounds], or -1.
+     * Uses area overlap rather than containment on purpose: a nested target that is much smaller
+     * than its container (a call button in a chat row) is a real second target and must keep its
+     * own label, while a wrapper and the icon inside it are the same element seen twice.
+     */
+    private fun indexOfNearDuplicate(
+        labels: List<Pair<AccessibilityNodeInfo, Rect>>,
+        bounds: Rect,
+    ): Int = labels.indexOfFirst { overlapRatio(it.second, bounds) >= NEAR_DUPLICATE_IOU }
 
     /** Classifies an actionable node as a digit / delete / enter key for PIN detection. */
     private fun accumulatePinKey(node: AccessibilityNodeInfo, bounds: Rect, acc: Accumulator, isIme: Boolean) {
