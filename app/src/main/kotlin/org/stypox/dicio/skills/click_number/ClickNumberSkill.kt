@@ -20,7 +20,7 @@ class ClickNumberSkill(
 
     // the `.number.` capture matches a spoken number, which the sentences don't spell out
     override val grammar: SkillGrammar
-        get() = data.grammar + SkillGrammar.ofWords(numberWords)
+        get() = sentencesGrammar + SkillGrammar.ofWords(numberWords)
 
     override fun score(ctx: SkillContext, input: String): Pair<Score, ClickNumber> {
         val (score, result) = super.score(ctx, input)

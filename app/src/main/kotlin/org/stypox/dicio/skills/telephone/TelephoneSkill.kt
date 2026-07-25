@@ -21,7 +21,7 @@ class TelephoneSkill(
 
     // calling a contact can be confirmed with a yes/no answer, or by picking a number by index
     override val grammar: SkillGrammar
-        get() = data.grammar + yesNoData.grammar + SkillGrammar.ofWords(numberWords)
+        get() = sentencesGrammar + yesNoData.grammar + SkillGrammar.ofWords(numberWords)
 
     override suspend fun generateOutput(ctx: SkillContext, inputData: Telephone): SkillOutput {
         val contentResolver = ctx.android.contentResolver

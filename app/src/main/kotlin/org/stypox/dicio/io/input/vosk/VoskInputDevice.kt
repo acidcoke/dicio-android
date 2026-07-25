@@ -416,12 +416,11 @@ class VoskInputDevice(
         _state.value = Loading(thenStartListeningEventListener)
 
         operationsJob = scope.launch {
-            val speechStream: SpeechStream
-            try {
+            val speechStream: SpeechStream = try {
                 LibVosk.setLogLevel(if (BuildConfig.DEBUG) LogLevel.DEBUG else LogLevel.WARNINGS)
                 val model = Model(modelDirectory.absolutePath)
                 loadedModel = model
-                speechStream = buildSpeechStream(model)
+                buildSpeechStream(model)
             } catch (e: IOException) {
                 Log.e(TAG, "Can't load Vosk model", e)
                 _state.value = ErrorLoading(e)
@@ -441,7 +440,7 @@ class VoskInputDevice(
                     return@launch
                 }
                 Log.e(TAG, "Can't load Vosk model with grammar, falling back to free recognition", e)
-                speechStream = fallback
+                fallback
             }
 
             if (!_state.compareAndSet(Loading(null), Loaded(speechStream))) {

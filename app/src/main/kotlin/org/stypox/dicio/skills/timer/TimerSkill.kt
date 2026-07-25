@@ -31,7 +31,7 @@ class TimerSkill(
     // the `.duration.` capture matches spoken numbers and time units, and cancelling a timer can be
     // confirmed with a yes/no answer; neither is spelled out by the timer sentences
     override val grammar: SkillGrammar
-        get() = data.grammar + yesNoData.grammar + SkillGrammar.ofWords(captureWords)
+        get() = sentencesGrammar + yesNoData.grammar + SkillGrammar.ofWords(captureWords)
 
     override suspend fun generateOutput(ctx: SkillContext, inputData: Timer): SkillOutput {
         return when (inputData) {

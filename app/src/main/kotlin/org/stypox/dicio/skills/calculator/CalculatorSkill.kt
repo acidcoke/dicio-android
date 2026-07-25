@@ -24,7 +24,7 @@ class CalculatorSkill(
     // the `.calculation.` capture is made of spoken numbers joined by the operator words, which live
     // in their own sentence section
     override val grammar: SkillGrammar
-        get() = data.grammar + operatorRecognizerData.grammar + SkillGrammar.ofWords(numberWords)
+        get() = sentencesGrammar + operatorRecognizerData.grammar + SkillGrammar.ofWords(numberWords)
 
     private fun getOperation(
         ctx: SkillContext,

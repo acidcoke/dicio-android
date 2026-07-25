@@ -21,7 +21,7 @@ class GridSkill(
     // the `.cell.` capture matches a column letter or phonetic word plus a spoken row number, none
     // of which the sentences spell out
     override val grammar: SkillGrammar
-        get() = data.grammar + SkillGrammar.ofWords(cellWords)
+        get() = sentencesGrammar + SkillGrammar.ofWords(cellWords)
 
     // The cell reference parsed from the utterance in score(), consumed by generateOutput() within
     // the same (sequential) utterance evaluation, mirroring PinKeySkill's pendingChain.

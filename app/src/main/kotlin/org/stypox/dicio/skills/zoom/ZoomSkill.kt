@@ -21,7 +21,7 @@ class ZoomSkill(
 
     // the `.cell.` capture matches a grid cell reference, which the sentences don't spell out
     override val grammar: SkillGrammar
-        get() = data.grammar + SkillGrammar.ofWords(cellWords)
+        get() = sentencesGrammar + SkillGrammar.ofWords(cellWords)
 
     // The cell reference parsed from the utterance in score(), consumed by generateOutput() within
     // the same (sequential) utterance evaluation, mirroring GridSkill's pendingCell.
