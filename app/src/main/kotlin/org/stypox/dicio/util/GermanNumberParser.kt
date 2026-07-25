@@ -46,6 +46,29 @@ object GermanNumberParser {
         "neunzig" to 90,
     )
 
+    /**
+     * Every German number word up to 100, including the compound forms ("einundzwanzig"), so that a
+     * closed recognition grammar can contain the numbers this parser understands. Only the spellings
+     * a speech recognizer actually produces are listed, i.e. the diacritics-free variants that exist
+     * above just to be lenient when parsing are left out.
+     */
+    val numberWords: List<String> by lazy {
+        val unitsForCompounds = listOf(
+            "ein", "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht", "neun",
+        )
+        val tensForCompounds = listOf(
+            "zwanzig", "dreißig", "vierzig", "fünfzig", "sechzig", "siebzig", "achtzig", "neunzig",
+        )
+
+        listOf("null", "eins", "eine", "zwei", "zwo", "drei", "vier", "fünf", "sechs", "sieben",
+            "acht", "neun", "ein") +
+                listOf("zehn", "elf", "zwölf", "dreizehn", "vierzehn", "fünfzehn", "sechzehn",
+                    "siebzehn", "achtzehn", "neunzehn") +
+                tensForCompounds +
+                tensForCompounds.flatMap { ten -> unitsForCompounds.map { unit -> "${unit}und$ten" } } +
+                listOf("hundert", "einhundert")
+    }
+
     /** Parse a single German number word (0..999), or null if it isn't one. */
     fun parse(text: String): Int? {
         val word = text.trim().lowercase().replace(" ", "").replace("-", "")

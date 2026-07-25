@@ -1,6 +1,12 @@
 package org.stypox.dicio.sentencesCompilerPlugin.util
 
 const val SKILL_DEFINITIONS_FILE = "skill_definitions.yml"
+
+// reserved top-level keys of a skill sentences file, i.e. keys that are not sentence ids
+const val DICTATION_TRIGGERS_KEY = "dictation_triggers"
+const val FULL_DECODE_TRIGGERS_KEY = "full_decode_triggers"
+val TRIGGER_KEYS = setOf(DICTATION_TRIGGERS_KEY, FULL_DECODE_TRIGGERS_KEY)
+
 const val YML_EXT = ".yml"
 const val PACKAGE_NAME = "org.stypox.dicio.sentences"
 const val CLASS_NAME = "Sentences"

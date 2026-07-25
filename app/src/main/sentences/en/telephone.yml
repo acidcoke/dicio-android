@@ -1,3 +1,13 @@
+# Words after which the rest of the utterance is open vocabulary and must be decoded
+# free-form instead of being forced onto the words of the recognition grammar. They
+# are only in effect while this skill is enabled, and must appear in the sentences below.
+dictation_triggers:
+  - call
+  - ring
+  - phone
+  - dial
+  - contact
+
 dial:
   - (call up?)|(ring up)|phone|dial|contact .who.
   - call|ring .who. up

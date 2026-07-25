@@ -1,3 +1,18 @@
+# Wörter, nach denen der Rest der Äußerung freies Vokabular ist und frei erkannt werden
+# muss, statt auf die Wörter der Erkennungsgrammatik gezwungen zu werden. Sie gelten nur,
+# solange dieser Skill aktiviert ist, und müssen in den Sätzen unten vorkommen.
+dictation_triggers:
+  - öffne
+  - oeffne
+  - starte
+  - zeige
+
+# Die gesamte Äußerung inklusive Triggerwort wird frei erkannt: ein App-Name darf nie auf
+# ein Grammatikwort gezwungen werden ("öffne signal" -> "öffne sieben").
+full_decode_triggers:
+  - öffne
+  - oeffne
+
 query:
   - starte|zeige|öffne|oeffne ((die|den|das)|(die app|anwendung))? .what. (app|anwendung)?
   - .what. starten|zeigen|öffnen|oeffnen

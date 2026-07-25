@@ -1,3 +1,12 @@
+# Words after which the rest of the utterance is open vocabulary and must be decoded
+# free-form instead of being forced onto the words of the recognition grammar. They
+# are only in effect while this skill is enabled, and must appear in the sentences below.
+dictation_triggers:
+  - navigate
+  - take
+  - bring
+  - give
+
 query:
   - (navigate me?)|(take|bring me)|((give me?)? direction<s?>) to|toward|in? the? .where.
   - where s|is .where.

@@ -4,6 +4,7 @@ import org.dicio.skill.context.SkillContext
 import org.dicio.skill.skill.AlwaysBestScore
 import org.dicio.skill.skill.AlwaysWorstScore
 import org.dicio.skill.skill.Score
+import org.dicio.skill.skill.SkillGrammar
 import org.dicio.skill.skill.SkillInfo
 import org.dicio.skill.skill.SkillOutput
 import org.dicio.skill.standard.StandardRecognizerData
@@ -14,7 +15,13 @@ import org.stypox.dicio.voiceaccess.VoiceAccessService
 class GridSkill(
     correspondingSkillInfo: SkillInfo,
     data: StandardRecognizerData<Grid>,
+    private val cellWords: List<String>,
 ) : StandardRecognizerSkill<Grid>(correspondingSkillInfo, data) {
+
+    // the `.cell.` capture matches a column letter or phonetic word plus a spoken row number, none
+    // of which the sentences spell out
+    override val grammar: SkillGrammar
+        get() = data.grammar + SkillGrammar.ofWords(cellWords)
 
     // The cell reference parsed from the utterance in score(), consumed by generateOutput() within
     // the same (sequential) utterance evaluation, mirroring PinKeySkill's pendingChain.

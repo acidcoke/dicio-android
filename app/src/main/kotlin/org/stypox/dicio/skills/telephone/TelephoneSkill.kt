@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import org.dicio.skill.context.SkillContext
+import org.dicio.skill.skill.SkillGrammar
 import org.dicio.skill.skill.SkillInfo
 import org.dicio.skill.skill.SkillOutput
 import org.dicio.skill.standard.StandardRecognizerData
@@ -15,7 +16,12 @@ class TelephoneSkill(
     correspondingSkillInfo: SkillInfo,
     data: StandardRecognizerData<Telephone>,
     val yesNoData: StandardRecognizerData<Sentences.UtilYesNo>,
+    private val numberWords: List<String>,
 ) : StandardRecognizerSkill<Telephone>(correspondingSkillInfo, data) {
+
+    // calling a contact can be confirmed with a yes/no answer, or by picking a number by index
+    override val grammar: SkillGrammar
+        get() = data.grammar + yesNoData.grammar + SkillGrammar.ofWords(numberWords)
 
     override suspend fun generateOutput(ctx: SkillContext, inputData: Telephone): SkillOutput {
         val contentResolver = ctx.android.contentResolver

@@ -1,3 +1,17 @@
+# Wörter, nach denen der Rest der Äußerung freies Vokabular ist und frei erkannt werden
+# muss, statt auf die Wörter der Erkennungsgrammatik gezwungen zu werden. Sie gelten nur,
+# solange dieser Skill aktiviert ist, und müssen in den Sätzen unten vorkommen.
+dictation_triggers:
+  - navigier
+  - navigiere
+  - führ
+  - führe
+  - bring
+  - bringe
+  - leit
+  - leite
+  - route
+
 query:
   - navigier<e?>|führ<e?>|bring<e?>|leit<e?>|route mich|uns? nach|in|zu<m|r?>? .where.
   - zeig<e?>|find<e?> mir|uns? (den weg|die route) nach|in|zu<m|r?> .where.

@@ -3,6 +3,7 @@ package org.stypox.dicio.skills.click_number
 import org.dicio.skill.context.SkillContext
 import org.dicio.skill.skill.AlwaysWorstScore
 import org.dicio.skill.skill.Score
+import org.dicio.skill.skill.SkillGrammar
 import org.dicio.skill.skill.SkillOutput
 import org.dicio.skill.standard.StandardRecognizerData
 import org.dicio.skill.standard.StandardRecognizerSkill
@@ -14,7 +15,12 @@ import org.stypox.dicio.voiceaccess.VoiceAccessService
 class ClickNumberSkill(
     private val info: ClickNumberInfo,
     data: StandardRecognizerData<ClickNumber>,
+    private val numberWords: List<String>,
 ) : StandardRecognizerSkill<ClickNumber>(info, data) {
+
+    // the `.number.` capture matches a spoken number, which the sentences don't spell out
+    override val grammar: SkillGrammar
+        get() = data.grammar + SkillGrammar.ofWords(numberWords)
 
     override fun score(ctx: SkillContext, input: String): Pair<Score, ClickNumber> {
         val (score, result) = super.score(ctx, input)

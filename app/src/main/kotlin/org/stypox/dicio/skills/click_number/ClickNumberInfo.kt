@@ -17,6 +17,7 @@ import org.stypox.dicio.R
 import org.stypox.dicio.sentences.Sentences
 import org.stypox.dicio.settings.datastore.NumberSelectionMode
 import org.stypox.dicio.settings.datastore.UserSettings
+import org.stypox.dicio.util.GrammarVocabulary
 
 class ClickNumberInfo(val dataStore: DataStore<UserSettings>) : SkillInfo("click_number") {
 
@@ -50,7 +51,7 @@ class ClickNumberInfo(val dataStore: DataStore<UserSettings>) : SkillInfo("click
 
     override fun build(ctx: SkillContext): Skill<*>? {
         val data = Sentences.ClickNumber[ctx.sentencesLanguage] ?: return null
-        return ClickNumberSkill(this, data)
+        return ClickNumberSkill(this, data, GrammarVocabulary.numberWords(ctx))
     }
 
     companion object {

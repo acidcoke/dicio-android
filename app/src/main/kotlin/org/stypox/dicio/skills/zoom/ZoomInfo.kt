@@ -10,6 +10,7 @@ import org.dicio.skill.skill.Skill
 import org.dicio.skill.skill.SkillInfo
 import org.stypox.dicio.R
 import org.stypox.dicio.sentences.Sentences
+import org.stypox.dicio.util.GrammarVocabulary
 
 object ZoomInfo : SkillInfo("zoom") {
     override fun name(context: Context) =
@@ -24,6 +25,6 @@ object ZoomInfo : SkillInfo("zoom") {
 
     override fun build(ctx: SkillContext): Skill<*>? {
         val data = Sentences.Zoom[ctx.sentencesLanguage] ?: return null
-        return ZoomSkill(ZoomInfo, data)
+        return ZoomSkill(ZoomInfo, data, GrammarVocabulary.gridCellWords(ctx))
     }
 }

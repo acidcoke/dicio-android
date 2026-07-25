@@ -8,6 +8,7 @@ import androidx.annotation.StringRes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.dicio.skill.context.SkillContext
+import org.dicio.skill.skill.SkillGrammar
 import org.dicio.skill.skill.SkillInfo
 import org.dicio.skill.skill.SkillOutput
 import org.dicio.skill.standard.StandardRecognizerData
@@ -24,7 +25,13 @@ class TimerSkill(
     correspondingSkillInfo: SkillInfo,
     data: StandardRecognizerData<Timer>,
     private val yesNoData: StandardRecognizerData<Sentences.UtilYesNo>,
+    private val captureWords: List<String>,
 ) : StandardRecognizerSkill<Timer>(correspondingSkillInfo, data) {
+
+    // the `.duration.` capture matches spoken numbers and time units, and cancelling a timer can be
+    // confirmed with a yes/no answer; neither is spelled out by the timer sentences
+    override val grammar: SkillGrammar
+        get() = data.grammar + yesNoData.grammar + SkillGrammar.ofWords(captureWords)
 
     override suspend fun generateOutput(ctx: SkillContext, inputData: Timer): SkillOutput {
         return when (inputData) {

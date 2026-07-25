@@ -12,6 +12,7 @@ import org.dicio.skill.context.SkillContext
 import org.dicio.skill.skill.SkillInfo
 import org.stypox.dicio.R
 import org.stypox.dicio.sentences.Sentences
+import org.stypox.dicio.util.GrammarVocabulary
 
 object TimerInfo : SkillInfo("timer") {
     override fun name(context: Context) =
@@ -28,6 +29,10 @@ object TimerInfo : SkillInfo("timer") {
         val data = Sentences.Timer[ctx.sentencesLanguage] ?: return null
         val yesNoData = Sentences.UtilYesNo[ctx.sentencesLanguage] ?: return null
         if (ctx.parserFormatter == null) return null
-        return TimerSkill(TimerInfo, data, yesNoData)
+        return TimerSkill(
+            TimerInfo, data, yesNoData,
+            // a `.duration.` is a spoken number followed by a time unit
+            GrammarVocabulary.numberWords(ctx) + GrammarVocabulary.durationWords(ctx),
+        )
     }
 }

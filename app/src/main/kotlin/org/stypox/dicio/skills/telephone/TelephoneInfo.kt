@@ -14,6 +14,7 @@ import org.dicio.skill.skill.Permission
 import org.dicio.skill.skill.SkillInfo
 import org.stypox.dicio.R
 import org.stypox.dicio.sentences.Sentences
+import org.stypox.dicio.util.GrammarVocabulary
 import org.stypox.dicio.util.PERMISSION_CALL_PHONE
 import org.stypox.dicio.util.PERMISSION_READ_CONTACTS
 
@@ -34,6 +35,6 @@ object TelephoneInfo : SkillInfo("telephone") {
     override fun build(ctx: SkillContext): Skill<*>? {
         val data = Sentences.Telephone[ctx.sentencesLanguage] ?: return null
         val yesNoData = Sentences.UtilYesNo[ctx.sentencesLanguage] ?: return null
-        return TelephoneSkill(TelephoneInfo, data, yesNoData)
+        return TelephoneSkill(TelephoneInfo, data, yesNoData, GrammarVocabulary.numberWords(ctx))
     }
 }

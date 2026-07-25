@@ -15,7 +15,8 @@ fun parseSentences(extractedSkill: ExtractedSkill): ParsedSkill {
         languageToSentences = extractedSkill.languageToSentences
             .map { (language, sentences) ->
                 Pair(language, sentences.map(::parseSentence))
-            }
+            },
+        languageToTriggers = extractedSkill.languageToTriggers,
     )
 }
 

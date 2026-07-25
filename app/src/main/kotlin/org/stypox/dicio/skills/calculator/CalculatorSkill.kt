@@ -3,6 +3,7 @@ package org.stypox.dicio.skills.calculator
 import net.objecthunter.exp4j.ExpressionBuilder
 import org.dicio.numbers.unit.Number
 import org.dicio.skill.context.SkillContext
+import org.dicio.skill.skill.SkillGrammar
 import org.dicio.skill.skill.SkillInfo
 import org.dicio.skill.skill.SkillOutput
 import org.dicio.skill.standard.StandardRecognizerData
@@ -17,7 +18,13 @@ class CalculatorSkill(
     correspondingSkillInfo: SkillInfo,
     data: StandardRecognizerData<Calculator>,
     private val operatorRecognizerData: StandardRecognizerData<CalculatorOperators>,
+    private val numberWords: List<String>,
 ) : StandardRecognizerSkill<Calculator>(correspondingSkillInfo, data) {
+
+    // the `.calculation.` capture is made of spoken numbers joined by the operator words, which live
+    // in their own sentence section
+    override val grammar: SkillGrammar
+        get() = data.grammar + operatorRecognizerData.grammar + SkillGrammar.ofWords(numberWords)
 
     private fun getOperation(
         ctx: SkillContext,

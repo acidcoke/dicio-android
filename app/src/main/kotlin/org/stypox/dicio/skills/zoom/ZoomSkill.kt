@@ -4,6 +4,7 @@ import org.dicio.skill.context.SkillContext
 import org.dicio.skill.skill.AlwaysBestScore
 import org.dicio.skill.skill.AlwaysWorstScore
 import org.dicio.skill.skill.Score
+import org.dicio.skill.skill.SkillGrammar
 import org.dicio.skill.skill.SkillInfo
 import org.dicio.skill.skill.SkillOutput
 import org.dicio.skill.standard.StandardRecognizerData
@@ -15,7 +16,12 @@ import org.stypox.dicio.voiceaccess.VoiceAccessService
 class ZoomSkill(
     correspondingSkillInfo: SkillInfo,
     data: StandardRecognizerData<Zoom>,
+    private val cellWords: List<String>,
 ) : StandardRecognizerSkill<Zoom>(correspondingSkillInfo, data) {
+
+    // the `.cell.` capture matches a grid cell reference, which the sentences don't spell out
+    override val grammar: SkillGrammar
+        get() = data.grammar + SkillGrammar.ofWords(cellWords)
 
     // The cell reference parsed from the utterance in score(), consumed by generateOutput() within
     // the same (sequential) utterance evaluation, mirroring GridSkill's pendingCell.

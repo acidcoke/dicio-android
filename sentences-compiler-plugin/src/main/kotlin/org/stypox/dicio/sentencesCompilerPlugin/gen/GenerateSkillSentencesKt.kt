@@ -152,10 +152,12 @@ private fun generateLanguageToDataProperty(skill: ParsedSkill, resultType: Class
         .initializer(
             "mapOf(${"%S to lazy { %L },".repeat(skill.languageToSentences.size)})",
             *skill.languageToSentences.flatMap { (language, sentences) ->
+                val vocabulary = buildVocabulary(skill, language, sentences)
                 sequenceOf(
                     language,
                     CodeBlock.of(
-                        "%T(%T.%L, %L, listOf(${"Pair(%S, %L),".repeat(sentences.size)}))",
+                        "%T(%T.%L, %L, listOf(${"Pair(%S, %L),".repeat(sentences.size)}), " +
+                                "vocabulary·=·%L, dictationTriggers·=·%L, fullDecodeTriggers·=·%L)",
                         standardRecognizerDataClassName,
                         ClassName("org.dicio.skill.skill", "Specificity"),
                         skill.specificity.name,
@@ -166,13 +168,20 @@ private fun generateLanguageToDataProperty(skill: ParsedSkill, resultType: Class
                                 sentence.id,
                                 generateConstruct(sentence.constructs, definition),
                             )
-                        }.toTypedArray()
+                        }.toTypedArray(),
+                        generateStringList(vocabulary.words),
+                        generateStringList(vocabulary.dictationTriggers),
+                        generateStringList(vocabulary.fullDecodeTriggers),
                     )
                 )
             }.toTypedArray()
         )
 
     return dataProp.build()
+}
+
+private fun generateStringList(values: List<String>): CodeBlock {
+    return CodeBlock.of("listOf(${"%S,".repeat(values.size)})", *values.toTypedArray())
 }
 
 private fun generateGetOperator(resultType: ClassName): FunSpec {

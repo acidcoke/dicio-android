@@ -1,27 +1,37 @@
 package org.stypox.dicio.sentencesCompilerPlugin.data
 
 import org.gradle.api.logging.Logger
+import org.stypox.dicio.sentencesCompilerPlugin.util.DICTATION_TRIGGERS_KEY
+import org.stypox.dicio.sentencesCompilerPlugin.util.FULL_DECODE_TRIGGERS_KEY
 import org.stypox.dicio.sentencesCompilerPlugin.util.SKILL_DEFINITIONS_FILE
 import org.stypox.dicio.sentencesCompilerPlugin.util.SentencesCompilerPluginException
+import org.stypox.dicio.sentencesCompilerPlugin.util.TRIGGER_KEYS
 import org.stypox.dicio.sentencesCompilerPlugin.util.YML_EXT
 import java.io.File
 
 fun extractDataFromFiles(logger: Logger, inputDirFile: File): ExtractedData {
     val skills = parseYamlFile<SkillDefinitionsFile>(File(inputDirFile, SKILL_DEFINITIONS_FILE))
         .skills
-        .map { Pair(it, HashMap<String, ArrayList<RawSentence>>()) }
+        .map { Triple(it, HashMap<String, ArrayList<RawSentence>>(), HashMap<String, SkillTriggers>()) }
     val languages = ArrayList<String>()
 
     // sorted() to ensure this executes deterministically, so the APK builds reproduciblyg
     for (lang in inputDirFile.listFiles { file -> file.isDirectory }!!.sorted()) {
         var langHasSentence = false
-        for ((skill, sentences) in skills) {
+        for ((skill, sentences, triggers) in skills) {
             val file = File(lang, skill.id + YML_EXT)
             if (!file.exists()) {
                 continue
             }
 
-            val parsedSentences: Map<String, List<String>?> = parseYamlFile(file)
+            val parsedFile: Map<String, List<String>?> = parseYamlFile(file)
+            // the trigger keys are not sentence ids, so take them out before validating the rest
+            val skillTriggers = extractTriggers(lang.name, file, parsedFile)
+            if (skillTriggers != null) {
+                triggers[lang.name] = skillTriggers
+            }
+            val parsedSentences = parsedFile - TRIGGER_KEYS
+
             val expectedSentenceIds = skill.sentences.map { it.id }.toSet()
             if (!parsedSentences.keys.containsAll(expectedSentenceIds)) {
                 throw SentencesCompilerPluginException(
@@ -82,7 +92,7 @@ fun extractDataFromFiles(logger: Logger, inputDirFile: File): ExtractedData {
 
         // issue a warning for unknown files
         for (file in lang.listFiles()!!) {
-            if (skills.all { (skill, _) -> skill.id + YML_EXT != file.name }) {
+            if (skills.all { (skill, _, _) -> skill.id + YML_EXT != file.name }) {
                 logger.error(
                     "[Warning] Skill sentences file ${lang.name}/${
                         file.name
@@ -94,15 +104,48 @@ fun extractDataFromFiles(logger: Logger, inputDirFile: File): ExtractedData {
 
     return ExtractedData(
         skills = skills
-            .map { (skill, languageToSentences) ->
+            .map { (skill, languageToSentences, languageToTriggers) ->
                 ExtractedSkill(
                     id = skill.id,
                     specificity = skill.specificity,
                     sentenceDefinitions = skill.sentences,
                     // sort here to ensure that the code is generated deterministically
                     languageToSentences = languageToSentences.toList().sortedBy { it.first },
+                    languageToTriggers = languageToTriggers,
                 )
             },
         languages = languages,
+    )
+}
+
+/**
+ * Reads the reserved [DICTATION_TRIGGERS_KEY] / [FULL_DECODE_TRIGGERS_KEY] keys out of an already
+ * parsed skill sentences file, or returns `null` if it declares neither.
+ */
+private fun extractTriggers(
+    language: String,
+    file: File,
+    parsedFile: Map<String, List<String>?>,
+): SkillTriggers? {
+    if (TRIGGER_KEYS.none { it in parsedFile }) {
+        return null
+    }
+
+    val dictationTriggers = parsedFile[DICTATION_TRIGGERS_KEY].orEmpty().map { it.lowercase() }
+    val fullDecodeTriggers = parsedFile[FULL_DECODE_TRIGGERS_KEY].orEmpty().map { it.lowercase() }
+
+    // an utterance can only be fully re-decoded if its first word takes it out of the grammar in the
+    // first place, so the full decode triggers have to be a subset of the dictation triggers
+    val notDictation = fullDecodeTriggers - dictationTriggers.toSet()
+    if (notDictation.isNotEmpty()) {
+        throw SentencesCompilerPluginException(
+            "Skill sentences file $language/${file.name} lists these $FULL_DECODE_TRIGGERS_KEY " +
+                    "that are not also $DICTATION_TRIGGERS_KEY $notDictation: ${file.absolutePath}"
+        )
+    }
+
+    return SkillTriggers(
+        dictationTriggers = dictationTriggers,
+        fullDecodeTriggers = fullDecodeTriggers,
     )
 }

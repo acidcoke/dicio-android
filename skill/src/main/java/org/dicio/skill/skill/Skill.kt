@@ -16,6 +16,17 @@ abstract class Skill<InputData>(
 ) {
 
     /**
+     * The words this skill needs the speech recognizer to be able to hear. The grammars of all
+     * enabled skills are merged and used to constrain recognition, so anything this skill can
+     * understand must be listed here, and nothing else should be. Skills based on
+     * [org.dicio.skill.standard.StandardRecognizerData] get this for free from their generated
+     * sentences, and only need to override it if they also match words their sentences don't spell
+     * out (e.g. spoken numbers).
+     */
+    open val grammar: SkillGrammar
+        get() = SkillGrammar.EMPTY
+
+    /**
      * Matches the user input, calculates a [Score] object and extracts data from the input.
      *
      * @param ctx the [SkillContext] object to use to access resources, query information from

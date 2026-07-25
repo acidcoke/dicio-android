@@ -10,6 +10,7 @@ import org.dicio.skill.skill.Skill
 import org.dicio.skill.skill.SkillInfo
 import org.stypox.dicio.R
 import org.stypox.dicio.sentences.Sentences
+import org.stypox.dicio.util.GrammarVocabulary
 
 object GridInfo : SkillInfo("grid") {
     override fun name(context: Context) =
@@ -24,6 +25,6 @@ object GridInfo : SkillInfo("grid") {
 
     override fun build(ctx: SkillContext): Skill<*>? {
         val data = Sentences.Grid[ctx.sentencesLanguage] ?: return null
-        return GridSkill(GridInfo, data)
+        return GridSkill(GridInfo, data, GrammarVocabulary.gridCellWords(ctx))
     }
 }

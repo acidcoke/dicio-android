@@ -32,7 +32,9 @@ import kotlinx.coroutines.withContext
 import org.stypox.dicio.R
 import org.stypox.dicio.di.LocaleManager
 import org.stypox.dicio.di.LocaleManagerModule
+import org.dicio.skill.skill.SkillGrammar
 import org.stypox.dicio.di.SttInputDeviceWrapper
+import org.stypox.dicio.eval.SkillHandler
 import org.stypox.dicio.settings.datastore.UserSettings
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
@@ -112,19 +114,10 @@ class VoiceAccessService : AccessibilityService() {
     private val keyboardShiftLabel: String get() = localeResources.getString(R.string.va_keyboard_shift)
     private val keyboardSpaceLabel: String get() = localeResources.getString(R.string.va_keyboard_space)
 
-    // global command words still allowed while a PIN pad is up (go back/home, scroll, stop, …)
-    private val commandGrammarWords: List<String>
-        get() = localeResources.getStringArray(R.array.va_command_grammar).toList()
-
-    // leading words of the open-vocab skills (open/search/…); when one is heard as the first word,
-    // the rest of the utterance is dictated free-form (see RelaySpeechStream)
-    private val dictationTriggers: List<String>
-        get() = localeResources.getStringArray(R.array.va_dictation_triggers).toList()
-
-    // subset of dictationTriggers ("open") whose entire utterance, trigger word included, is
-    // re-decoded free-form instead of just the tail (see RelaySpeechStream)
-    private val fullDecodeTriggers: List<String>
-        get() = localeResources.getStringArray(R.array.va_full_decode_triggers).toList()
+    // the merged grammar of the currently enabled skills, kept in sync with SkillHandler: every
+    // word they can understand, plus the words after which dictation takes over
+    @Volatile
+    private var skillGrammar: SkillGrammar = SkillGrammar.EMPTY
 
     private val localeManager: LocaleManager by lazy {
         EntryPointAccessors
@@ -136,6 +129,11 @@ class VoiceAccessService : AccessibilityService() {
         EntryPointAccessors
             .fromApplication(applicationContext, VoiceAccessEntryPoint::class.java)
             .sttInputDeviceWrapper()
+    }
+    private val skillHandler: SkillHandler by lazy {
+        EntryPointAccessors
+            .fromApplication(applicationContext, VoiceAccessEntryPoint::class.java)
+            .skillHandler()
     }
 
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
@@ -157,6 +155,7 @@ class VoiceAccessService : AccessibilityService() {
         instance = this
         collectLabelStyle()
         collectLocale()
+        collectSkillGrammar()
         Log.d(TAG, "VoiceAccessService connected")
     }
 
@@ -168,6 +167,21 @@ class VoiceAccessService : AccessibilityService() {
                 val ctx = contextForLocale(locale)
                 localizedContext = ctx
                 localizedResources = ctx.resources
+            }
+        }
+    }
+
+    /**
+     * Keeps [skillGrammar] in sync with the enabled skills, so that enabling or disabling a skill in
+     * the settings takes effect immediately, even in the middle of a listening session.
+     */
+    private fun collectSkillGrammar() {
+        scope.launch {
+            skillHandler.skillGrammar.collect { grammar ->
+                skillGrammar = grammar
+                if (sessionActive) {
+                    applyRecognitionGrammar()
+                }
             }
         }
     }
@@ -946,18 +960,37 @@ class VoiceAccessService : AccessibilityService() {
 
     // ---------------------------------------------------------------- listening bar
 
-    /** The closed command set the grammar recognizer is constrained to for the whole session: the
-     * phonetic PIN words, the delete/enter captions and all non-dictation command words. */
+    /** The closed command set the grammar recognizer is constrained to: the labels drawn on screen
+     * (which must be speakable no matter which skills are enabled) plus the words of every enabled
+     * skill. */
     private fun fullCommandGrammar(): List<String> =
         pinWords.toList() +
             listOf(pinDeleteLabel, pinEnterLabel, keyboardShiftLabel, keyboardSpaceLabel) +
-            commandGrammarWords
+            skillGrammar.words
+
+    /**
+     * Constrains recognition to the words of the enabled skills. With no skill enabled (or none
+     * having sentences for this language) there is nothing meaningful to constrain to, and forcing
+     * every utterance onto the handful of on-screen labels would be far worse than not constraining
+     * at all, so recognition is left free in that case.
+     */
+    private fun applyRecognitionGrammar() {
+        if (skillGrammar.isEmpty) {
+            sttInputDevice.setRecognitionGrammar(null)
+        } else {
+            sttInputDevice.setRecognitionGrammar(
+                fullCommandGrammar(),
+                skillGrammar.dictationTriggers,
+                skillGrammar.fullDecodeTriggers,
+            )
+        }
+    }
 
     fun showListening() = runOnMain {
         sessionActive = true
         // constrain recognition to the command set; free-form dictation kicks in only after a
         // trigger word (open/search/…) — see RelaySpeechStream
-        sttInputDevice.setRecognitionGrammar(fullCommandGrammar(), dictationTriggers, fullDecodeTriggers)
+        applyRecognitionGrammar()
         val wm = windowManager ?: return@runOnMain
         if (listeningBar == null) {
             val view = ListeningBarView(localeContext)
@@ -1183,11 +1216,15 @@ class VoiceAccessService : AccessibilityService() {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
 
-    /** Lets this non-Hilt AccessibilityService reach the settings data store and the STT device. */
+    /**
+     * Lets this non-Hilt AccessibilityService reach the settings data store, the STT device and the
+     * skills (whose merged grammar constrains recognition).
+     */
     @EntryPoint
     @InstallIn(SingletonComponent::class)
     interface VoiceAccessEntryPoint {
         fun dataStore(): DataStore<UserSettings>
         fun sttInputDeviceWrapper(): SttInputDeviceWrapper
+        fun skillHandler(): SkillHandler
     }
 }

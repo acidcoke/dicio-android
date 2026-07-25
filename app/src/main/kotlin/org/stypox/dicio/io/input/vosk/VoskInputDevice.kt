@@ -426,6 +426,22 @@ class VoskInputDevice(
                 Log.e(TAG, "Can't load Vosk model", e)
                 _state.value = ErrorLoading(e)
                 return@launch
+            } catch (e: Exception) {
+                // a grammar the model can't honor must not take the whole STT device down: drop it
+                // and build an unconstrained recognizer instead, so recognition still works
+                val model = loadedModel
+                val fallback = if (grammar == null || model == null) null else runCatching {
+                    grammar = null
+                    SingleSpeechStream(SpeechService(makeFreeRecognizer(model), SAMPLE_RATE))
+                }.getOrNull()
+
+                if (fallback == null) {
+                    Log.e(TAG, "Can't load Vosk model", e)
+                    _state.value = ErrorLoading(e)
+                    return@launch
+                }
+                Log.e(TAG, "Can't load Vosk model with grammar, falling back to free recognition", e)
+                speechStream = fallback
             }
 
             if (!_state.compareAndSet(Loading(null), Loaded(speechStream))) {
@@ -533,7 +549,7 @@ class VoskInputDevice(
             Log.e(TAG, "Can't build recognizer with grammar, keeping current recognition", e)
             return
         }
-        Log.d(TAG, "Applied recognition grammar: ${grammar ?: "free"}")
+        Log.d(TAG, "Applied recognition grammar (${grammar?.size ?: 0} words): ${grammar ?: "free"}")
         when (val s = _state.value) {
             is Loaded -> {
                 s.speechStream.stop()

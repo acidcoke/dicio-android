@@ -10,8 +10,10 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+import org.dicio.skill.skill.SkillGrammar
 import org.dicio.skill.skill.SkillInfo
 import org.stypox.dicio.di.LocaleManager
+import org.stypox.dicio.sentences.Sentences
 import org.stypox.dicio.di.SkillContextImpl
 import org.stypox.dicio.di.SkillContextInternal
 import org.stypox.dicio.settings.datastore.UserSettings
@@ -98,6 +100,14 @@ class SkillHandler @Inject constructor(
     )
     val skillRanker: StateFlow<SkillRanker> = _skillRanker
 
+    /**
+     * The words the currently enabled skills need a speech recognizer to be able to hear, used to
+     * constrain recognition to a closed grammar. A disabled skill contributes nothing, so its words
+     * can't pull recognitions away from the skills the user actually kept.
+     */
+    private val _skillGrammar = MutableStateFlow(SkillGrammar.EMPTY)
+    val skillGrammar: StateFlow<SkillGrammar> = _skillGrammar
+
     init {
         scope.launch {
             localeManager.locale
@@ -115,9 +125,19 @@ class SkillHandler @Inject constructor(
                         newEnabledSkillsInfo.map { (_info, skill) -> skill },
                         fallbackSkillInfoList[0].build(skillContext)!!,
                     )
+                    _skillGrammar.value = SkillGrammar.merge(
+                        // the continue/stop answers are scored by WakeService regardless of which
+                        // skills are enabled, so they always have to be recognizable
+                        listOf(alwaysOnGrammar()) +
+                                newEnabledSkillsInfo.map { (_info, skill) -> skill.grammar }
+                    )
                 }
         }
     }
+
+    /** The grammar that has to be available no matter which skills the user enabled. */
+    private fun alwaysOnGrammar(): SkillGrammar =
+        Sentences.Confirmation[skillContext.sentencesLanguage]?.grammar ?: SkillGrammar.EMPTY
 
     companion object {
         fun newForPreviews(context: Context): SkillHandler {

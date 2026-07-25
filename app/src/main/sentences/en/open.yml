@@ -1,2 +1,13 @@
+# Words after which the rest of the utterance is open vocabulary and must be decoded
+# free-form instead of being forced onto the words of the recognition grammar. They
+# are only in effect while this skill is enabled, and must appear in the sentences below.
+dictation_triggers:
+  - open
+
+# The whole utterance, trigger word included, is decoded free-form: an app name must never
+# be forced onto a grammar word ("open signal" -> "open second").
+full_decode_triggers:
+  - open
+
 query:
   - open .what.

@@ -1,3 +1,9 @@
+# Words after which the rest of the utterance is open vocabulary and must be decoded
+# free-form instead of being forced onto the words of the recognition grammar. They
+# are only in effect while this skill is enabled, and must appear in the sentences below.
+dictation_triggers:
+  - translate
+
 translate:
   - (i d|would like you? to)? please? translate .query. ((from .source.)? (<in?>to .target.)?)|(<in?>to .target. from .source.) (for me)?
   - (i d|would like to know)|(please? tell me)? what (is|s|are .query.)(.query. is|are) in .target. (from .source.)?
