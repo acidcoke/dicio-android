@@ -166,25 +166,29 @@ object ClickableNodeScanner {
     }
 
     /**
-     * Dumps what a scan labeled, so a screen with unexpected chips can be diagnosed with
-     * `adb logcat -s DicioLabels`. Debug builds only, and only when the set actually changed, since
-     * scans run several times a second.
+     * Dumps what a scan labeled, to logcat under `DicioLabels` and into [LabelDump], which writes it
+     * to a file when the session ends. Debug builds only, and only when the set actually changed,
+     * since scans run several times a second.
      */
     private fun logLabels(labels: List<LabeledNode>) {
         val signature = labels.joinToString(";") { it.bounds.toShortString() }
         if (signature == lastLoggedSignature) return
         lastLoggedSignature = signature
-        Log.d(LOG_TAG, "--- ${labels.size} labels")
+
+        val lines = ArrayList<String>(labels.size + 1)
+        lines.add("--- ${labels.size} labels")
         for (label in labels) {
             val node = label.node
-            Log.d(
-                LOG_TAG,
+            lines.add(
                 "${label.number}: ${label.bounds.toShortString()} pkg=${node.packageName}" +
                     " cls=${node.className} id=${node.viewIdResourceName} win=${node.windowId}" +
                     " click=${node.isClickable} vis=${node.isVisibleToUser}" +
-                    " txt=${node.text?.take(30)} desc=${node.contentDescription?.take(30)}",
+                    " txt=${node.text?.take(30)} desc=${node.contentDescription?.take(30)}"
             )
         }
+        // one entry per line, since logcat truncates a single long message
+        for (line in lines) Log.d(LOG_TAG, line)
+        LabelDump.append(lines.joinToString("\n", postfix = "\n"))
     }
 
     private fun collectFrom(

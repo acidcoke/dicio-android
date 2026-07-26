@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.stypox.dicio.BuildConfig
 import org.stypox.dicio.R
 import org.stypox.dicio.di.LocaleManager
 import org.stypox.dicio.di.LocaleManagerModule
@@ -987,6 +988,8 @@ class VoiceAccessService : AccessibilityService() {
      */
     fun hideListening() = runOnMain {
         sessionActive = false
+        // hand the session's label diagnostics to a file the user can share (debug builds only)
+        if (BuildConfig.DEBUG) LabelDump.writeToDownloads(this)
         // session over: drop the command grammar so the general assistant gets free dictation again
         sttInputDevice.setRecognitionGrammar(null)
         stopLabelPolling()
