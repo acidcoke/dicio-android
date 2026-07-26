@@ -95,8 +95,6 @@ object ClickableNodeScanner {
     private class Accumulator {
         val labels = ArrayList<Pair<AccessibilityNodeInfo, Rect>>()
         val seenBounds = HashSet<String>()
-        // nodes performClick would actually end up clicking, so we only label each target once
-        val seenClickTargets = HashSet<AccessibilityNodeInfo>()
         val digits = HashMap<Int, PinKeyNode>()
         var hasPasswordField = false
         var deleteKey: PinKeyNode? = null
@@ -162,50 +160,25 @@ object ClickableNodeScanner {
             val bounds = Rect()
             node.getBoundsInScreen(bounds)
             if (!bounds.isEmpty) {
-                // one label per click target: a clickable row and its merely screen-reader-focusable
-                // children (name, preview text, avatar) all trigger the same action, so a second
-                // label there is just noise. Pre-order means the outer node is seen first, putting
-                // the surviving label on the row itself, which is where the tap lands anyway.
-                val target = clickTargetOf(node)
-                val newTarget = target == null || acc.seenClickTargets.add(target)
-                // dedup overlapping items (e.g. a clickable row that also reports a clickable child
-                // at the same bounds) so we don't draw two labels in the same spot
-                val key = "${bounds.left},${bounds.top},${bounds.right},${bounds.bottom}"
-                val newBounds = acc.seenBounds.add(key)
-                if (newTarget && newBounds) {
-                    val duplicate = indexOfNearDuplicate(acc.labels, bounds)
-                    if (duplicate < 0) {
+                // only genuinely clickable elements get a label. A merely focusable node (a chat
+                // row's name or preview text) is not a target of its own: clicking it just walks up
+                // to its clickable ancestor and does whatever that does.
+                if (node.isClickable) {
+                    val key = "${bounds.left},${bounds.top},${bounds.right},${bounds.bottom}"
+                    // drop chips that would land on top of each other: the exact same rectangle, or
+                    // a nested clickable covering essentially the same area (WhatsApp's chat-list
+                    // avatar is a clickable ImageView inside a clickable wrapper)
+                    if (acc.seenBounds.add(key) && indexOfNearDuplicate(acc.labels, bounds) < 0) {
                         acc.labels.add(Pair(node, bounds))
-                    } else if (!acc.labels[duplicate].first.isClickable && node.isClickable) {
-                        // same area, but the node we kept is merely focusable: take the clickable
-                        // one so performClick uses its accessibility action instead of a tap
-                        acc.labels[duplicate] = Pair(node, bounds)
                     }
-                    // otherwise drop it: a clickable wrapper and its clickable icon (WhatsApp's
-                    // chat-list avatar) trigger the same action and don't need two chips
                 }
+                // PIN / keyboard detection still sees every actionable node, not just clickable
+                // ones, since some keypads expose their keys as focus-only nodes
                 accumulatePinKey(node, bounds, acc, isIme)
             }
         }
 
         forEachChild(node) { collectFrom(it, acc, isIme) }
-    }
-
-    /**
-     * The node `VoiceAccessService.performClick` would click for [node]: the first clickable node
-     * from [node] upwards. Null when there is none (performClick falls back to tapping the bounds
-     * there) or when the search runs into a scrollable container, since a scrollable ancestor is
-     * practically never the intended target and merging across one would collapse a whole list into
-     * a single label.
-     */
-    private fun clickTargetOf(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
-        var current: AccessibilityNodeInfo? = node
-        while (current != null) {
-            if (current.isClickable) return current
-            if (current.isScrollable) return null
-            current = current.parent
-        }
-        return null
     }
 
     /** Area overlap of [a] and [b] as intersection over union, 0 when they do not intersect. */
