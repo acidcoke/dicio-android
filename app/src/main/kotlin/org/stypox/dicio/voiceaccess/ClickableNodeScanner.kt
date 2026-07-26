@@ -92,6 +92,14 @@ object ClickableNodeScanner {
     // a clickable wrapper around a clickable icon clears this easily, while a genuinely separate
     // target inside a row (the call button of a chat entry) stays far below it
     private const val NEAR_DUPLICATE_IOU = 0.5f
+    // a chip on something this large points at nothing in particular: Grayjay marks its whole
+    // videodetail_root clickable, which puts a number over blank space at the top of the screen
+    private const val MAX_LABEL_AREA_FRACTION = 0.6f
+    // a full-width container with nothing in it is a row laid out before its content loaded (the
+    // recommendation list of a Grayjay video), so its chip would float over an empty area
+    private const val WIDE_CONTAINER_WIDTH_FRACTION = 0.6f
+    // how deep to look for any text under a wide container before calling it empty
+    private const val CONTENT_SEARCH_DEPTH = 4
     private const val LOG_TAG = "DicioLabels"
 
     /** Bounds of the labels logged last, so [logLabels] only prints when something changed. */
@@ -134,7 +142,7 @@ object ClickableNodeScanner {
             // a window fully hidden behind a higher one (the activity behind a dialog) holds nothing
             // the user can act on, even though its nodes still report isVisibleToUser
             if (root != null && !isCovered(windowBounds, occluders)) {
-                collectFrom(root, acc, isIme, occluders)
+                collectFrom(root, acc, isIme, occluders, windowBounds)
             }
             if (occludes(window) && !windowBounds.isEmpty) occluders.add(windowBounds)
         }
@@ -196,12 +204,13 @@ object ClickableNodeScanner {
         acc: Accumulator,
         isIme: Boolean,
         occluders: MutableList<Rect>,
+        windowBounds: Rect,
     ) {
         if (node.isPassword) acc.hasPasswordField = true
 
         if (!node.isVisibleToUser) {
             // still descend into invisible containers, their children might be visible
-            collectChildren(node, acc, isIme, occluders)
+            collectChildren(node, acc, isIme, occluders, windowBounds)
             return
         }
 
@@ -218,7 +227,11 @@ object ClickableNodeScanner {
                 // virtual nodes, so requiring isClickable would leave every key but the special
                 // ones (which come from KeyboardKeys) unlabeled. Those keys are tapped by gesture
                 // anyway, via performClick's fallback.
-                if (node.isClickable || isIme) {
+                // the keyboard is exempt from the noise filters below: its keys were only just made
+                // labelable again and nothing on a keyboard looks like a stray container
+                if ((node.isClickable || isIme) &&
+                    (isIme || !isNoiseLabel(node, bounds, windowBounds))
+                ) {
                     val key = "${bounds.left},${bounds.top},${bounds.right},${bounds.bottom}"
                     // drop chips that would land on top of each other: the exact same rectangle, or
                     // a nested clickable covering essentially the same area (WhatsApp's chat-list
@@ -233,7 +246,40 @@ object ClickableNodeScanner {
             }
         }
 
-        collectChildren(node, acc, isIme, occluders)
+        collectChildren(node, acc, isIme, occluders, windowBounds)
+    }
+
+    /**
+     * Whether labeling [node] would only add noise. Two shapes, both taken from a Grayjay dump: a
+     * clickable container spanning most of [window], whose chip points at nothing in particular
+     * (`videodetail_root` covers the entire screen), and a full-width container with no text
+     * anywhere inside it, which is what a list row laid out before its content loaded looks like —
+     * its chip ends up floating over a blank area.
+     *
+     * Both tests are about size, so a small icon button without a description is never affected.
+     */
+    private fun isNoiseLabel(node: AccessibilityNodeInfo, bounds: Rect, window: Rect): Boolean {
+        if (window.isEmpty) return false
+        val windowArea = window.width().toLong() * window.height()
+        val area = bounds.width().toLong() * bounds.height()
+        if (area >= windowArea * MAX_LABEL_AREA_FRACTION) return true
+        val fullWidth = bounds.width() >= window.width() * WIDE_CONTAINER_WIDTH_FRACTION
+        return fullWidth && !hasContentText(node, CONTENT_SEARCH_DEPTH)
+    }
+
+    /**
+     * Whether [node] or a descendant at most [depth] levels down carries text or a content
+     * description. Bounded so this stays cheap; when the text sits deeper the node keeps its label,
+     * which is the conservative outcome.
+     */
+    private fun hasContentText(node: AccessibilityNodeInfo, depth: Int): Boolean {
+        if (!node.text.isNullOrBlank() || !node.contentDescription.isNullOrBlank()) return true
+        if (depth <= 0) return false
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            if (hasContentText(child, depth - 1)) return true
+        }
+        return false
     }
 
     /**
@@ -246,12 +292,13 @@ object ClickableNodeScanner {
         acc: Accumulator,
         isIme: Boolean,
         occluders: MutableList<Rect>,
+        windowBounds: Rect,
     ) {
         val mark = occluders.size
         for (i in node.childCount - 1 downTo 0) {
             val child = node.getChild(i) ?: continue
             val labelsBefore = acc.labels.size
-            collectFrom(child, acc, isIme, occluders)
+            collectFrom(child, acc, isIme, occluders, windowBounds)
             addIfOccluding(child, acc.labels.size > labelsBefore, occluders)
         }
         while (occluders.size > mark) occluders.removeAt(occluders.size - 1)
