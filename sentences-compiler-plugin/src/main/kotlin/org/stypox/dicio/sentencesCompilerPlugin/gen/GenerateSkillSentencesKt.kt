@@ -157,7 +157,7 @@ private fun generateLanguageToDataProperty(skill: ParsedSkill, resultType: Class
                     language,
                     CodeBlock.of(
                         "%T(%T.%L, %L, listOf(${"Pair(%S, %L),".repeat(sentences.size)}), " +
-                                "vocabulary·=·%L, dictationTriggers·=·%L, fullDecodeTriggers·=·%L)",
+                                "phrases·=·%L, dictationTriggers·=·%L, fullDecodeTriggers·=·%L)",
                         standardRecognizerDataClassName,
                         ClassName("org.dicio.skill.skill", "Specificity"),
                         skill.specificity.name,
@@ -169,7 +169,7 @@ private fun generateLanguageToDataProperty(skill: ParsedSkill, resultType: Class
                                 generateConstruct(sentence.constructs, definition),
                             )
                         }.toTypedArray(),
-                        generateStringList(vocabulary.words),
+                        generateStringList(vocabulary.phrases),
                         generateStringList(vocabulary.dictationTriggers),
                         generateStringList(vocabulary.fullDecodeTriggers),
                     )

@@ -12,10 +12,11 @@ open class StandardRecognizerData<out T>(
     private val converter: (input: String, sentenceId: String, matchResult: StandardScore) -> T,
     private val sentencesWithId: List<Pair<String, Construct>>,
     /**
-     * Every literal word appearing in these sentences, generated at build time from the sentence
-     * definitions. Used to constrain a speech recognizer to a closed grammar, see [SkillGrammar].
+     * The whole command phrases these sentences can produce, generated at build time from the
+     * sentence definitions. Used to constrain a speech recognizer to a closed grammar, see
+     * [SkillGrammar].
      */
-    val vocabulary: List<String> = listOf(),
+    val phrases: List<String> = listOf(),
     /**
      * Leading words of the sentences containing an open-vocabulary capture, see [SkillGrammar].
      */
@@ -28,7 +29,7 @@ open class StandardRecognizerData<out T>(
 ) {
     /** The grammar these sentences contribute to the speech recognizer. */
     val grammar: SkillGrammar
-        get() = SkillGrammar(vocabulary, dictationTriggers, fullDecodeTriggers)
+        get() = SkillGrammar(phrases, dictationTriggers, fullDecodeTriggers)
 
     fun score(ctx: SkillContext, input: String): Pair<StandardScore, T> {
         return score(ctx.standardMatchHelper!!, input)

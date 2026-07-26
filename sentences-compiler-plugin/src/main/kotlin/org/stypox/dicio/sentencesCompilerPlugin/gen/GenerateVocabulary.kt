@@ -16,29 +16,44 @@ import org.stypox.dicio.sentencesCompilerPlugin.util.SentencesCompilerPluginExce
  * hear for the skill to work. Constraining recognition to the grammars of just the enabled skills
  * is what keeps a disabled skill from pulling recognitions towards its own words.
  *
- * The word list is derived from the sentences; the triggers come from the reserved
+ * The phrases are derived from the sentences; the triggers come from the reserved
  * `dictation_triggers` / `full_decode_triggers` keys of the sentences file. All lists are lowercase,
  * deduplicated and sorted, so that the generated code (and therefore the APK) stays reproducible.
  */
 data class SkillVocabulary(
-    val words: List<String>,
+    val phrases: List<String>,
     val dictationTriggers: List<String>,
     val fullDecodeTriggers: List<String>,
 )
+
+/**
+ * Above this many alternatives a sentence contributes its bare words instead of its phrases. The
+ * sentences of the free-form skills nest so many optionals that spelling them all out would produce
+ * thousands of phrases (and, worse, phrases whose words can then be recombined at will anyway).
+ * Those sentences are reached through the dictation triggers, so their exact wording never has to be
+ * recognizable.
+ */
+private const val MAX_ALTERNATIVES_PER_SENTENCE = 250
+
+/** How [CapturingGroup.buildAlternatives] renders a capture, e.g. `.where.`. */
+private val CAPTURING_GROUP = Regex("\\.[a-zA-Z_]+\\.")
+
+private val WHITESPACE = Regex("\\s+")
 
 fun buildVocabulary(
     skill: ParsedSkill,
     language: String,
     sentences: List<ParsedSentence>,
 ): SkillVocabulary {
-    val words = HashSet<String>()
+    val phrases = HashSet<String>()
     for (sentence in sentences) {
-        words.addAll(collectWords(sentence.constructs))
+        phrases.addAll(collectPhrases(sentence.constructs))
     }
 
     val triggers = skill.languageToTriggers[language]
     // a trigger hands the rest of the utterance over to free-form dictation, so it can only ever be
     // a word the skill itself listens for; anything else is a typo or a leftover
+    val words = phrases.flatMapTo(HashSet()) { it.split(" ") }
     val unknownTriggers = triggers?.dictationTriggers.orEmpty() - words
     if (unknownTriggers.isNotEmpty()) {
         throw SentencesCompilerPluginException(
@@ -48,16 +63,38 @@ fun buildVocabulary(
     }
 
     return SkillVocabulary(
-        words = words.sorted(),
+        phrases = phrases.sorted(),
         dictationTriggers = triggers?.dictationTriggers.orEmpty().sorted(),
         fullDecodeTriggers = triggers?.fullDecodeTriggers.orEmpty().sorted(),
     )
 }
 
 /**
- * All of the literal words that can appear in [construct]. Capturing groups contribute nothing:
- * what they match is either free-form (and reached through the dictation triggers) or supplied by
- * the skill itself at runtime (e.g. spoken numbers).
+ * The whole command phrases [construct] can produce, e.g. `go home` and `back` for `go? back`. A
+ * recognizer constrained to phrases can only ever return sequences of them, which is what makes
+ * short commands reliable: with the words alone it is free to stitch "go home" together as "going".
+ *
+ * Captures split a phrase in two, since what they match is either free-form (and reached through the
+ * dictation triggers) or supplied by the skill itself at runtime (e.g. spoken numbers): `call .who.`
+ * contributes just `call`, and `look .what. up` contributes `look` and `up`.
+ */
+fun collectPhrases(construct: Construct): Set<String> {
+    // countAlternatives() multiplies, so a deeply optional sentence can overflow into a negative
+    // number: anything outside the sane range falls back to the words, it is never expanded
+    if (construct.countAlternatives() !in 1..MAX_ALTERNATIVES_PER_SENTENCE) {
+        return collectWords(construct)
+    }
+
+    return construct.buildAlternatives()
+        .flatMap { it.split(CAPTURING_GROUP) }
+        .mapNotNullTo(HashSet()) { phrase ->
+            phrase.trim().replace(WHITESPACE, " ").lowercase().takeIf { it.isNotEmpty() }
+        }
+}
+
+/**
+ * All of the literal words that can appear in [construct], used for the sentences that are too
+ * branchy to spell out as phrases. Capturing groups contribute nothing, see [collectPhrases].
  */
 fun collectWords(construct: Construct): Set<String> {
     return when (construct) {

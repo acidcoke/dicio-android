@@ -15,7 +15,7 @@ import org.stypox.dicio.skills.search.SearchInfo
 
 /**
  * The recognition grammar is the union of the grammars of the *enabled* skills only: a skill the
- * user turned off must not leave its words behind, where they would keep pulling recognitions away
+ * user turned off must not leave its phrases behind, where they would keep pulling recognitions away
  * from the skills that are still on.
  *
  * These use real skills, but only ones whose [SkillInfo.build] needs nothing but their sentences —
@@ -35,36 +35,36 @@ private fun grammarOf(skillInfos: List<SkillInfo>, enabledSkills: Map<String, Bo
 
 // derived from the sentence definitions instead of hardcoded, so that editing en/labels.yml or
 // en/back.yml can't silently turn these assertions into no-ops
-private val backWords = Sentences.Back["en"]!!.vocabulary
-private val labelsOnlyWords = Sentences.Labels["en"]!!.vocabulary - backWords.toSet()
+private val backPhrases = Sentences.Back["en"]!!.phrases
+private val labelsOnlyPhrases = Sentences.Labels["en"]!!.phrases - backPhrases.toSet()
 private val searchTriggers = Sentences.Search["en"]!!.dictationTriggers
-private val confirmationWords = Sentences.Confirmation["en"]!!.vocabulary
+private val confirmationPhrases = Sentences.Confirmation["en"]!!.phrases
 
 class SkillHandlerGrammarTest : StringSpec({
-    "the skills used below really do have words of their own" {
+    "the skills used below really do have phrases of their own" {
         // otherwise the assertions further down would hold vacuously
-        withClue("labels must understand words the back skill doesn't") {
-            labelsOnlyWords.shouldNotBeEmpty()
+        withClue("labels must understand phrases the back skill doesn't") {
+            labelsOnlyPhrases.shouldNotBeEmpty()
         }
         searchTriggers.shouldNotBeEmpty()
-        confirmationWords.shouldNotBeEmpty()
+        confirmationPhrases.shouldNotBeEmpty()
     }
 
     "a skill the settings say nothing about counts as enabled" {
         val grammar = grammarOf(listOf(LabelsInfo, BackInfo), mapOf())
 
-        grammar.words shouldContainAll labelsOnlyWords
-        grammar.words shouldContainAll backWords
+        grammar.phrases shouldContainAll labelsOnlyPhrases
+        grammar.phrases shouldContainAll backPhrases
     }
 
-    "a disabled skill contributes none of its words" {
+    "a disabled skill contributes none of its phrases" {
         val grammar = grammarOf(listOf(LabelsInfo, BackInfo), mapOf(LabelsInfo.id to false))
 
-        withClue("words only the disabled labels skill understands: $labelsOnlyWords") {
-            grammar.words.intersect(labelsOnlyWords.toSet()).shouldBeEmpty()
+        withClue("phrases only the disabled labels skill understands: $labelsOnlyPhrases") {
+            grammar.phrases.intersect(labelsOnlyPhrases.toSet()).shouldBeEmpty()
         }
-        withClue("the skills that are still enabled must keep their words") {
-            grammar.words shouldContainAll backWords
+        withClue("the skills that are still enabled must keep their phrases") {
+            grammar.phrases shouldContainAll backPhrases
         }
     }
 
@@ -80,7 +80,7 @@ class SkillHandlerGrammarTest : StringSpec({
         val skillInfos = listOf(LabelsInfo, BackInfo, SearchInfo)
         val grammar = grammarOf(skillInfos, skillInfos.associate { it.id to false })
 
-        grammar.words shouldContainAll confirmationWords
-        grammar.words.intersect(labelsOnlyWords.toSet()).shouldBeEmpty()
+        grammar.phrases shouldContainAll confirmationPhrases
+        grammar.phrases.intersect(labelsOnlyPhrases.toSet()).shouldBeEmpty()
     }
 })

@@ -115,7 +115,7 @@ class VoiceAccessService : AccessibilityService() {
     private val keyboardSpaceLabel: String get() = localeResources.getString(R.string.va_keyboard_space)
 
     // the merged grammar of the currently enabled skills, kept in sync with SkillHandler: every
-    // word they can understand, plus the words after which dictation takes over
+    // phrase they can understand, plus the words after which dictation takes over
     @Volatile
     private var skillGrammar: SkillGrammar = SkillGrammar.EMPTY
 
@@ -961,15 +961,15 @@ class VoiceAccessService : AccessibilityService() {
     // ---------------------------------------------------------------- listening bar
 
     /** The closed command set the grammar recognizer is constrained to: the labels drawn on screen
-     * (which must be speakable no matter which skills are enabled) plus the words of every enabled
-     * skill. */
+     * (which must be speakable no matter which skills are enabled) plus the command phrases of every
+     * enabled skill. */
     private fun fullCommandGrammar(): List<String> =
         pinWords.toList() +
             listOf(pinDeleteLabel, pinEnterLabel, keyboardShiftLabel, keyboardSpaceLabel) +
-            skillGrammar.words
+            skillGrammar.phrases
 
     /**
-     * Constrains recognition to the words of the enabled skills. With no skill enabled (or none
+     * Constrains recognition to the phrases of the enabled skills. With no skill enabled (or none
      * having sentences for this language) there is nothing meaningful to constrain to, and forcing
      * every utterance onto the handful of on-screen labels would be far worse than not constraining
      * at all, so recognition is left free in that case.

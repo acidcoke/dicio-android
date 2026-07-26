@@ -548,7 +548,10 @@ class VoskInputDevice(
             Log.e(TAG, "Can't build recognizer with grammar, keeping current recognition", e)
             return
         }
-        Log.d(TAG, "Applied recognition grammar (${grammar?.size ?: 0} words): ${grammar ?: "free"}")
+        Log.d(
+            TAG,
+            "Applied recognition grammar (${grammar?.size ?: 0} phrases): ${grammar ?: "free"}"
+        )
         when (val s = _state.value) {
             is Loaded -> {
                 s.speechStream.stop()

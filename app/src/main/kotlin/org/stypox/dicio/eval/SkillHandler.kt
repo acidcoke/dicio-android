@@ -103,9 +103,9 @@ class SkillHandler @Inject constructor(
     val skillRanker: StateFlow<SkillRanker> = _skillRanker
 
     /**
-     * The words the currently enabled skills need a speech recognizer to be able to hear, used to
-     * constrain recognition to a closed grammar. A disabled skill contributes nothing, so its words
-     * can't pull recognitions away from the skills the user actually kept.
+     * The command phrases the currently enabled skills need a speech recognizer to be able to hear,
+     * used to constrain recognition to a closed grammar. A disabled skill contributes nothing, so
+     * its words can't pull recognitions away from the skills the user actually kept.
      */
     private val _skillGrammar = MutableStateFlow(SkillGrammar.EMPTY)
     val skillGrammar: StateFlow<SkillGrammar> = _skillGrammar
@@ -149,7 +149,7 @@ class SkillHandler @Inject constructor(
             .mapNotNull { info -> info.build(ctx)?.let { skill -> Pair(info, skill) } }
 
         /**
-         * The words a speech recognizer must be able to hear for [skills] to work, plus the
+         * The phrases a speech recognizer must be able to hear for [skills] to work, plus the
          * continue/stop answers, which [org.stypox.dicio.io.wake.WakeService] scores regardless of
          * which skills are enabled and which therefore always have to be recognizable.
          */
