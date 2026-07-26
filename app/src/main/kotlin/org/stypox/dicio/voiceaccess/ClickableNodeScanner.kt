@@ -162,13 +162,13 @@ object ClickableNodeScanner {
         node: AccessibilityNodeInfo,
         acc: Accumulator,
         isIme: Boolean,
-        occluders: List<Rect>,
+        occluders: MutableList<Rect>,
     ) {
         if (node.isPassword) acc.hasPasswordField = true
 
         if (!node.isVisibleToUser) {
             // still descend into invisible containers, their children might be visible
-            forEachChild(node) { collectFrom(it, acc, isIme, occluders) }
+            collectChildren(node, acc, isIme, occluders)
             return
         }
 
@@ -200,7 +200,41 @@ object ClickableNodeScanner {
             }
         }
 
-        forEachChild(node) { collectFrom(it, acc, isIme, occluders) }
+        collectChildren(node, acc, isIme, occluders)
+    }
+
+    /**
+     * Visits [node]'s children topmost first — later siblings are drawn over earlier ones — so a
+     * panel and its scrim are already registered as occluders by the time the content they cover is
+     * visited. Additions are undone on the way out, so they only apply to this subtree.
+     */
+    private fun collectChildren(
+        node: AccessibilityNodeInfo,
+        acc: Accumulator,
+        isIme: Boolean,
+        occluders: MutableList<Rect>,
+    ) {
+        val mark = occluders.size
+        for (i in node.childCount - 1 downTo 0) {
+            val child = node.getChild(i) ?: continue
+            collectFrom(child, acc, isIme, occluders)
+            addIfOccluding(child, occluders)
+        }
+        while (occluders.size > mark) occluders.removeAt(occluders.size - 1)
+    }
+
+    /**
+     * Registers [child] as hiding whatever is drawn below it, if it plausibly does. Only clickable
+     * nodes count: a scrim or panel that swallows taps is clickable, whereas a plain container of
+     * the same size is usually a transparent wrapper that hides nothing, and treating those as
+     * occluders would drop labels the user can still reach. Note this never affects [child]'s own
+     * descendants or ancestors — only siblings drawn below it, which is what draw order means here.
+     */
+    private fun addIfOccluding(child: AccessibilityNodeInfo, occluders: MutableList<Rect>) {
+        if (!child.isClickable || !child.isVisibleToUser) return
+        val bounds = Rect()
+        child.getBoundsInScreen(bounds)
+        if (!bounds.isEmpty) occluders.add(bounds)
     }
 
     /**
@@ -307,15 +341,5 @@ object ClickableNodeScanner {
         if (!node.isEnabled) return false
         return node.isClickable || node.isLongClickable ||
             (node.isFocusable && node.isScreenReaderFocusable)
-    }
-
-    private inline fun forEachChild(
-        node: AccessibilityNodeInfo,
-        action: (AccessibilityNodeInfo) -> Unit,
-    ) {
-        for (i in 0 until node.childCount) {
-            val child = node.getChild(i) ?: continue
-            action(child)
-        }
     }
 }
