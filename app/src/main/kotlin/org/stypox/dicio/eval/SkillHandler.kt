@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+import org.dicio.skill.context.SkillContext
+import org.dicio.skill.skill.Skill
 import org.dicio.skill.skill.SkillGrammar
 import org.dicio.skill.skill.SkillInfo
 import org.stypox.dicio.di.LocaleManager
@@ -116,30 +118,47 @@ class SkillHandler @Inject constructor(
                 .collectLatest { (_, enabledSkills) ->
                     // locale is not used here, because the skills directly use the sections locale
 
-                    val newEnabledSkillsInfo = allSkillInfoList
-                        .filter { enabledSkills.getOrDefault(it.id, true) }
-                        .mapNotNull { info -> info.build(skillContext)?.let { skill -> Pair(info, skill) } }
+                    val newEnabledSkillsInfo =
+                        buildEnabledSkills(allSkillInfoList, enabledSkills, skillContext)
 
                     _enabledSkillsInfo.value = newEnabledSkillsInfo.map { (info, _skill) -> info }
                     _skillRanker.value = SkillRanker(
                         newEnabledSkillsInfo.map { (_info, skill) -> skill },
                         fallbackSkillInfoList[0].build(skillContext)!!,
                     )
-                    _skillGrammar.value = SkillGrammar.merge(
-                        // the continue/stop answers are scored by WakeService regardless of which
-                        // skills are enabled, so they always have to be recognizable
-                        listOf(alwaysOnGrammar()) +
-                                newEnabledSkillsInfo.map { (_info, skill) -> skill.grammar }
+                    _skillGrammar.value = mergeGrammar(
+                        newEnabledSkillsInfo.map { (_info, skill) -> skill },
+                        skillContext.sentencesLanguage,
                     )
                 }
         }
     }
 
-    /** The grammar that has to be available no matter which skills the user enabled. */
-    private fun alwaysOnGrammar(): SkillGrammar =
-        Sentences.Confirmation[skillContext.sentencesLanguage]?.grammar ?: SkillGrammar.EMPTY
-
     companion object {
+        /**
+         * Builds the skills the user kept enabled, dropping the ones that are unavailable in the
+         * current language (their [SkillInfo.build] returns `null`). A skill missing from
+         * [enabledSkills] counts as enabled.
+         */
+        internal fun buildEnabledSkills(
+            allSkillInfoList: List<SkillInfo>,
+            enabledSkills: Map<String, Boolean>,
+            ctx: SkillContext,
+        ): List<Pair<SkillInfo, Skill<*>>> = allSkillInfoList
+            .filter { enabledSkills.getOrDefault(it.id, true) }
+            .mapNotNull { info -> info.build(ctx)?.let { skill -> Pair(info, skill) } }
+
+        /**
+         * The words a speech recognizer must be able to hear for [skills] to work, plus the
+         * continue/stop answers, which [org.stypox.dicio.io.wake.WakeService] scores regardless of
+         * which skills are enabled and which therefore always have to be recognizable.
+         */
+        internal fun mergeGrammar(skills: List<Skill<*>>, language: String): SkillGrammar =
+            SkillGrammar.merge(
+                listOf(Sentences.Confirmation[language]?.grammar ?: SkillGrammar.EMPTY) +
+                        skills.map { it.grammar }
+            )
+
         fun newForPreviews(context: Context): SkillHandler {
             return SkillHandler(
                 UserSettingsModule.newDataStoreForPreviews(),
