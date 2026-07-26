@@ -1,8 +1,10 @@
 package org.stypox.dicio.voiceaccess
 
 import android.graphics.Rect
+import android.util.Log
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
+import org.stypox.dicio.BuildConfig
 
 /**
  * A clickable element discovered in the current UI, together with the text shown to the user.
@@ -90,6 +92,10 @@ object ClickableNodeScanner {
     // a clickable wrapper around a clickable icon clears this easily, while a genuinely separate
     // target inside a row (the call button of a chat entry) stays far below it
     private const val NEAR_DUPLICATE_IOU = 0.5f
+    private const val LOG_TAG = "DicioLabels"
+
+    /** Bounds of the labels logged last, so [logLabels] only prints when something changed. */
+    private var lastLoggedSignature = ""
 
     /** Mutable accumulator carried through the recursive traversal. */
     private class Accumulator {
@@ -155,7 +161,30 @@ object ClickableNodeScanner {
             null
         }
 
+        if (BuildConfig.DEBUG) logLabels(labels)
         return ScanResult(labels, pinPad, keyboardKeys)
+    }
+
+    /**
+     * Dumps what a scan labeled, so a screen with unexpected chips can be diagnosed with
+     * `adb logcat -s DicioLabels`. Debug builds only, and only when the set actually changed, since
+     * scans run several times a second.
+     */
+    private fun logLabels(labels: List<LabeledNode>) {
+        val signature = labels.joinToString(";") { it.bounds.toShortString() }
+        if (signature == lastLoggedSignature) return
+        lastLoggedSignature = signature
+        Log.d(LOG_TAG, "--- ${labels.size} labels")
+        for (label in labels) {
+            val node = label.node
+            Log.d(
+                LOG_TAG,
+                "${label.number}: ${label.bounds.toShortString()} pkg=${node.packageName}" +
+                    " cls=${node.className} id=${node.viewIdResourceName} win=${node.windowId}" +
+                    " click=${node.isClickable} vis=${node.isVisibleToUser}" +
+                    " txt=${node.text?.take(30)} desc=${node.contentDescription?.take(30)}",
+            )
+        }
     }
 
     private fun collectFrom(
@@ -217,21 +246,31 @@ object ClickableNodeScanner {
         val mark = occluders.size
         for (i in node.childCount - 1 downTo 0) {
             val child = node.getChild(i) ?: continue
+            val labelsBefore = acc.labels.size
             collectFrom(child, acc, isIme, occluders)
-            addIfOccluding(child, occluders)
+            addIfOccluding(child, acc.labels.size > labelsBefore, occluders)
         }
         while (occluders.size > mark) occluders.removeAt(occluders.size - 1)
     }
 
     /**
-     * Registers [child] as hiding whatever is drawn below it, if it plausibly does. Only clickable
-     * nodes count: a scrim or panel that swallows taps is clickable, whereas a plain container of
-     * the same size is usually a transparent wrapper that hides nothing, and treating those as
-     * occluders would drop labels the user can still reach. Note this never affects [child]'s own
-     * descendants or ancestors — only siblings drawn below it, which is what draw order means here.
+     * Registers [child] as hiding whatever is drawn below it, if it plausibly does. Two things
+     * qualify: a clickable node, which is what a scrim or panel that swallows taps looks like, and a
+     * node that carries content of its own ([hasContent], i.e. its subtree produced labels), which
+     * is what a screen stacked over another screen in the same window looks like.
+     *
+     * An empty layer is deliberately not an occluder: a transparent wrapper spanning the screen
+     * hides nothing, and treating it as an occluder would drop labels the user can still reach.
+     * This never affects [child]'s own ancestors or descendants — only siblings drawn below it,
+     * which is what draw order means here.
      */
-    private fun addIfOccluding(child: AccessibilityNodeInfo, occluders: MutableList<Rect>) {
-        if (!child.isClickable || !child.isVisibleToUser) return
+    private fun addIfOccluding(
+        child: AccessibilityNodeInfo,
+        hasContent: Boolean,
+        occluders: MutableList<Rect>,
+    ) {
+        if (!child.isVisibleToUser) return
+        if (!child.isClickable && !hasContent) return
         val bounds = Rect()
         child.getBoundsInScreen(bounds)
         if (!bounds.isEmpty) occluders.add(bounds)
