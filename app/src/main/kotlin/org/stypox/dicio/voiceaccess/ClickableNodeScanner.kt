@@ -115,11 +115,22 @@ object ClickableNodeScanner {
     fun scan(windows: List<AccessibilityWindowInfo>): ScanResult {
         val acc = Accumulator()
         var keyboardVisible = false
-        for (window in windows) {
+        // topmost window first, so every window is checked against the ones drawn above it
+        val ordered = windows.sortedByDescending { it.layer }
+        // bounds of the windows already visited, i.e. those drawn on top of whatever follows
+        val occluders = ArrayList<Rect>()
+        for (window in ordered) {
             val isIme = window.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD
             if (isIme) keyboardVisible = true
-            val root = window.root ?: continue
-            collectFrom(root, acc, isIme)
+            val windowBounds = Rect()
+            window.getBoundsInScreen(windowBounds)
+            val root = window.root
+            // a window fully hidden behind a higher one (the activity behind a dialog) holds nothing
+            // the user can act on, even though its nodes still report isVisibleToUser
+            if (root != null && !isCovered(windowBounds, occluders)) {
+                collectFrom(root, acc, isIme, occluders)
+            }
+            if (occludes(window) && !windowBounds.isEmpty) occluders.add(windowBounds)
         }
         // a numeric-only on-screen keyboard (digits, no letters) signals a PIN/number entry even
         // when no readable password field exists (the field may be in a SECURE window)
@@ -147,19 +158,26 @@ object ClickableNodeScanner {
         return ScanResult(labels, pinPad, keyboardKeys)
     }
 
-    private fun collectFrom(node: AccessibilityNodeInfo, acc: Accumulator, isIme: Boolean) {
+    private fun collectFrom(
+        node: AccessibilityNodeInfo,
+        acc: Accumulator,
+        isIme: Boolean,
+        occluders: List<Rect>,
+    ) {
         if (node.isPassword) acc.hasPasswordField = true
 
         if (!node.isVisibleToUser) {
             // still descend into invisible containers, their children might be visible
-            forEachChild(node) { collectFrom(it, acc, isIme) }
+            forEachChild(node) { collectFrom(it, acc, isIme, occluders) }
             return
         }
 
         if (isActionable(node)) {
             val bounds = Rect()
             node.getBoundsInScreen(bounds)
-            if (!bounds.isEmpty) {
+            // isVisibleToUser only covers this node's own window, so it stays true for an element
+            // sitting behind another window — e.g. a list item scrolled under the keyboard
+            if (!bounds.isEmpty && !isCovered(bounds, occluders)) {
                 // only genuinely clickable elements get a label. A merely focusable node (a chat
                 // row's name or preview text) is not a target of its own: clicking it just walks up
                 // to its clickable ancestor and does whatever that does.
@@ -182,8 +200,26 @@ object ClickableNodeScanner {
             }
         }
 
-        forEachChild(node) { collectFrom(it, acc, isIme) }
+        forEachChild(node) { collectFrom(it, acc, isIme, occluders) }
     }
+
+    /**
+     * Whether [window] hides what is drawn below it. Deliberately limited to app and keyboard
+     * windows: those are the ones that actually swallow touches (a dialog over its activity, the
+     * keyboard over a list). System bars, the split-screen divider and our own label overlay also
+     * sit above the app, but treating them as occluders risks hiding labels that are perfectly
+     * usable — our overlay in particular is added with FLAG_NOT_TOUCHABLE and covers everything.
+     */
+    private fun occludes(window: AccessibilityWindowInfo): Boolean =
+        window.type == AccessibilityWindowInfo.TYPE_APPLICATION ||
+            window.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD
+
+    /**
+     * Whether [bounds] lies entirely inside one of [occluders]. Full containment on purpose: a
+     * partly covered element is still partly reachable, and its chip is drawn at its top edge.
+     */
+    private fun isCovered(bounds: Rect, occluders: List<Rect>): Boolean =
+        occluders.any { it.contains(bounds) }
 
     /** Area overlap of [a] and [b] as intersection over union, 0 when they do not intersect. */
     private fun overlapRatio(a: Rect, b: Rect): Float {
