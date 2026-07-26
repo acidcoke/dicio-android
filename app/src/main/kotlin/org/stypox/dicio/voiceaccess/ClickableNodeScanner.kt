@@ -163,7 +163,11 @@ object ClickableNodeScanner {
                 // only genuinely clickable elements get a label. A merely focusable node (a chat
                 // row's name or preview text) is not a target of its own: clicking it just walks up
                 // to its clickable ancestor and does whatever that does.
-                if (node.isClickable) {
+                // The on-screen keyboard is the exception: Gboard exposes its keys as focus-only
+                // virtual nodes, so requiring isClickable would leave every key but the special
+                // ones (which come from KeyboardKeys) unlabeled. Those keys are tapped by gesture
+                // anyway, via performClick's fallback.
+                if (node.isClickable || isIme) {
                     val key = "${bounds.left},${bounds.top},${bounds.right},${bounds.bottom}"
                     // drop chips that would land on top of each other: the exact same rectangle, or
                     // a nested clickable covering essentially the same area (WhatsApp's chat-list
