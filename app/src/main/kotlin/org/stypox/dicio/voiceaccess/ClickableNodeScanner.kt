@@ -100,6 +100,9 @@ object ClickableNodeScanner {
     private const val WIDE_CONTAINER_WIDTH_FRACTION = 0.6f
     // how deep to look for any text under a wide container before calling it empty
     private const val CONTENT_SEARCH_DEPTH = 4
+    // a system window narrower than this much of the screen is something drawn over an app, not a
+    // status/navigation bar, so it may hide what is below it
+    private const val SYSTEM_OCCLUDER_MAX_WIDTH = 0.9f
     private const val LOG_TAG = "DicioLabels"
 
     /** Bounds of the labels logged last, so [logLabels] only prints when something changed. */
@@ -133,18 +136,34 @@ object ClickableNodeScanner {
         val ordered = windows.sortedByDescending { it.layer }
         // bounds of the windows already visited, i.e. those drawn on top of whatever follows
         val occluders = ArrayList<Rect>()
+        // the whole display, used to tell a system window drawn over an app (the picture-in-picture
+        // controls) from one that spans the screen edge to edge (a status or navigation bar)
+        val screen = Rect()
+        for (window in windows) {
+            val bounds = Rect()
+            window.getBoundsInScreen(bounds)
+            if (!bounds.isEmpty) screen.union(bounds)
+        }
+        val windowNotes = if (BuildConfig.DEBUG) ArrayList<String>() else null
         for (window in ordered) {
             val isIme = window.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD
             if (isIme) keyboardVisible = true
             val windowBounds = Rect()
             window.getBoundsInScreen(windowBounds)
             val root = window.root
+            windowNotes?.add(
+                "win=${window.id} type=${window.type} layer=${window.layer}" +
+                    " ${windowBounds.toShortString()} occludes=${occludes(window, windowBounds, screen)}" +
+                    " covered=${isCovered(windowBounds, occluders)}"
+            )
             // a window fully hidden behind a higher one (the activity behind a dialog) holds nothing
             // the user can act on, even though its nodes still report isVisibleToUser
             if (root != null && !isCovered(windowBounds, occluders)) {
                 collectFrom(root, acc, isIme, occluders, windowBounds)
             }
-            if (occludes(window) && !windowBounds.isEmpty) occluders.add(windowBounds)
+            if (!windowBounds.isEmpty && occludes(window, windowBounds, screen)) {
+                occluders.add(windowBounds)
+            }
         }
         // a numeric-only on-screen keyboard (digits, no letters) signals a PIN/number entry even
         // when no readable password field exists (the field may be in a SECURE window)
@@ -169,7 +188,7 @@ object ClickableNodeScanner {
             null
         }
 
-        if (BuildConfig.DEBUG) logLabels(labels)
+        if (BuildConfig.DEBUG) logLabels(labels, windowNotes.orEmpty())
         return ScanResult(labels, pinPad, keyboardKeys)
     }
 
@@ -178,13 +197,15 @@ object ClickableNodeScanner {
      * to a file when the session ends. Debug builds only, and only when the set actually changed,
      * since scans run several times a second.
      */
-    private fun logLabels(labels: List<LabeledNode>) {
+    private fun logLabels(labels: List<LabeledNode>, windowNotes: List<String>) {
         val signature = labels.joinToString(";") { it.bounds.toShortString() }
         if (signature == lastLoggedSignature) return
         lastLoggedSignature = signature
 
-        val lines = ArrayList<String>(labels.size + 1)
+        val lines = ArrayList<String>(labels.size + windowNotes.size + 1)
         lines.add("--- ${labels.size} labels")
+        // the windows the labels came from, so a chip can be traced back to what was on top
+        for (note in windowNotes) lines.add("  $note")
         for (label in labels) {
             val node = label.node
             lines.add(
@@ -328,15 +349,23 @@ object ClickableNodeScanner {
     }
 
     /**
-     * Whether [window] hides what is drawn below it. Deliberately limited to app and keyboard
-     * windows: those are the ones that actually swallow touches (a dialog over its activity, the
-     * keyboard over a list). System bars, the split-screen divider and our own label overlay also
-     * sit above the app, but treating them as occluders risks hiding labels that are perfectly
-     * usable — our overlay in particular is added with FLAG_NOT_TOUCHABLE and covers everything.
+     * Whether [window] hides what is drawn below it. App and keyboard windows always do: those
+     * swallow touches (a dialog over its activity, the keyboard over a list).
+     *
+     * A system window counts only when it does not span [screen] edge to edge. That narrow case is
+     * the picture-in-picture controls, which sit exactly on top of the app's own PiP window and hide
+     * its buttons. The wide ones are status and navigation bars and invisible gesture layers, which
+     * must never hide the app behind them. Our own label overlay is an accessibility overlay and so
+     * never qualifies, which matters because it is added with FLAG_NOT_TOUCHABLE over everything.
      */
-    private fun occludes(window: AccessibilityWindowInfo): Boolean =
-        window.type == AccessibilityWindowInfo.TYPE_APPLICATION ||
-            window.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD
+    private fun occludes(window: AccessibilityWindowInfo, bounds: Rect, screen: Rect): Boolean =
+        when (window.type) {
+            AccessibilityWindowInfo.TYPE_APPLICATION,
+            AccessibilityWindowInfo.TYPE_INPUT_METHOD -> true
+            AccessibilityWindowInfo.TYPE_SYSTEM ->
+                !screen.isEmpty && bounds.width() < screen.width() * SYSTEM_OCCLUDER_MAX_WIDTH
+            else -> false
+        }
 
     /**
      * Whether [bounds] lies entirely inside one of [occluders]. Full containment on purpose: a
